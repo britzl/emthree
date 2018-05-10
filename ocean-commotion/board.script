@@ -1,0 +1,168 @@
+local emthree = require "emthree.emthree"
+
+
+local blocksize = 96		-- Distance between block centers
+local boardwidth = 9		-- Number of columns
+local boardheight = 9		-- Number of rows
+
+--
+-- The list of fishes that are used. These names must match animations/images
+-- in the atlas used for fishes.
+--
+--
+local colors = { hash("yellow"), hash("blue"), hash("orange"),
+				hash("purple"), hash("green"), hash("red") }
+
+local type_plain = hash("plain")
+local type_striped_h = hash("striped-h")
+local type_striped_v = hash("striped-v")
+local type_wrapped = hash("wrapped")
+local type_bomb = hash("bomb")
+
+local function is_striped(block)
+	return block.type == type_striped_v or block.type == type_striped_h
+end
+
+local function is_striped_vertical(block)
+	return block.type == type_striped_v
+end
+
+local function is_striped_horizontal(block)
+	return block.type == type_striped_h
+end
+
+local function is_wrapped(block)
+	return block.type == type_wrapped
+end
+
+local function is_bomb(block)
+	return block.type == type_bomb
+end
+
+local function create_random_block(pos, color)
+	local block_color = color or colors[math.random(#colors)]
+	local block_type = type_plain
+	local id = factory.create("#fish_factory", pos, null, { color = block_color })
+	msg.post(id, "set_parent", { parent_id = go.get_id(), keep_world_transform = 0 })
+	return id, block_color, block_type
+end
+
+
+local function on_stabilized(board)
+	msg.post(".", "acquire_input_focus")
+end
+
+local function on_match(board, block, horisontal_neighbors, vertical_neighbors)
+	-- handle t, l and cross shaped formations
+	if #horisontal_neighbors >= 2 and #vertical_neighbors >= 2 then
+		emthree.remove_blocks(board, horisontal_neighbors)
+		emthree.remove_blocks(board, vertical_neighbors)
+		emthree.change_block(block, type_wrapped, block.color)
+	elseif #horisontal_neighbors >= 4 then
+		emthree.remove_blocks(board, horisontal_neighbors)
+		emthree.change_block(block, type_bomb, nil)
+	elseif #horisontal_neighbors == 3 then
+		emthree.remove_blocks(board, horisontal_neighbors)
+		emthree.change_block(block, type_striped_v, block.color)
+	elseif #horisontal_neighbors == 2 then
+		emthree.remove_block(board, block)
+		emthree.remove_blocks(board, horisontal_neighbors)
+	elseif #vertical_neighbors >= 4 then
+		emthree.remove_blocks(board, vertical_neighbors)
+		emthree.change_block(block, type_bomb, nil)
+	elseif #vertical_neighbors == 3 then
+		emthree.remove_blocks(board, vertical_neighbors)
+		emthree.change_block(block, type_striped_h, block.color)
+	elseif #vertical_neighbors == 2 then
+		emthree.remove_block(board, block)
+		emthree.remove_blocks(board, vertical_neighbors)
+	end
+end
+
+local function on_block_removed(board, block)
+	if is_striped_horizontal(block) then
+		for x=0, board.width -1 do
+			if board.slots[x][block.y] then
+				emthree.remove_block(board, board.slots[x][block.y])
+			end
+		end
+	elseif is_striped_vertical(block) then
+		for y=0, board.height -1 do
+			if board.slots[block.x][y] then
+				emthree.remove_block(board, board.slots[block.x][y])
+			end
+		end
+	elseif is_wrapped(block) then
+		print("removing wrapped - add code to remove adjacent block")
+	elseif is_bomb(block) then
+		print("removing bomb - add code to remove blocks of the color that is most common")
+	end
+end
+
+--
+-- Handle swapping of special blocks and trigger desired effect
+--
+local function on_swap(board, block1, block2)
+	-- bomb + bomb = remove all
+	if is_bomb(block1) and is_bomb(block2) then
+		print("bomb+bomb - add code to remove all blocks")
+		return true
+	-- striped + striped = one horisontal and one vertical lineblast
+	elseif is_striped(block1) and is_striped(block2) then
+		-- make sure one is horisontal and the other is vertical
+		emthree.change_block(block1, type_striped_h, block1.color)
+		emthree.change_block(block2, type_striped_v, block2.color)
+		emthree.remove_block(self.board, block1)
+		emthree.remove_block(self.board, block2)
+		return true
+	-- wrapped + wrapped - radius 2 explosion
+	elseif is_wrapped(block1) and is_wrapped(block2) then
+		print("wrapped+wrapped - add code to remove radius 2 explosion")
+		return true
+	-- striped + wrapped
+	elseif (is_striped(block1) or is_striped(block2)) and (is_wrapped(block1) or is_wrapped(block2)) then
+		print("striped+wrapped - add code to remove three horisontal and vertical lines of blocks")
+		return true
+	-- bomb + striped
+	elseif (is_bomb(block1) or is_bomb(block2)) and (is_striped(block1) or is_striped(block2)) then
+		print("bomb+striped - add code to convert to striped and trigger them")
+		return true
+	-- bomb + wrapped
+	elseif (is_bomb(block1) or is_bomb(block2)) and (is_wrapped(block1) or is_wrapped(block2)) then
+		print("bomb+wrapped - add code")
+		return true
+	-- bomb + block = remove all blocks of that color
+	elseif is_bomb(block1) or is_bomb(block2) then
+		print("bomb+normal - add code to remove all blocks of the matched color")
+		return true
+	end
+
+	return false
+end
+
+--
+-- INIT the board
+--
+function init(self)
+	self.board = emthree.create_board(boardwidth, boardheight, blocksize, create_random_block)
+
+	emthree.on_match(self.board, on_match)
+	emthree.on_block_removed(self.board, on_block_removed)
+	emthree.on_swap(self.board, on_swap)
+	emthree.on_stabilized(self.board, on_stabilized)
+
+	-- start the board
+	emthree.stabilize(self.board)
+end
+
+--
+-- INPUT HANDLING
+--
+function on_input(self, action_id, action)
+	if action_id == hash("touch") and (action.pressed or action.released) then
+		return emthree.on_input(self.board, action)
+	end
+end
+
+function on_reload(self)
+end
