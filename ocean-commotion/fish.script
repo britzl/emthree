@@ -1,26 +1,23 @@
-go.property("color", hash("none"))
+go.property("color", hash("yellow"))
+go.property("type", hash("plain"))
 go.property("blink", 0)
 
 local emthree = require "emthree.emthree"
+local block_color = require "ocean-commotion.color"
+local block_type = require "ocean-commotion.type"
+
 
 local normal_scale = 0.45		-- The normal render size
 local zoomed_scale = 0.6		-- When interacted with, zoom to this
 
 local colors = {
-	[hash("yellow")] = "yellow",
-	[hash("blue")] = "blue",
-	[hash("orange")] = "orange",
-	[hash("purple")] = "purple",
-	[hash("green")] = "green",
-	[hash("red")] = "red"
+	[block_color.YELLOW] = "yellow",
+	[block_color.BLUE] = "blue",
+	[block_color.ORANGE] = "orange",
+	[block_color.PURPLE] = "purple",
+	[block_color.GREEN] = "green",
+	[block_color.RED] = "red"
 }
-
-local type_plain = hash("plain")
-local type_striped_h = hash("striped-h")
-local type_striped_v = hash("striped-v")
-local type_wrapped = hash("wrapped")
-local type_bomb = hash("bomb")
-
 
 local function change_sprite(id)
 	msg.post("#sprite", "play_animation", { id = id })
@@ -48,6 +45,34 @@ local function blink(self)
 	end)
 end
 
+local function update_sprites(self)
+	particlefx.stop("#explosion")
+	msg.post("#sprite", "enable")
+	msg.post("#sprite-eyes", "enable")
+	local c = colors[self.color]
+	local e = colors[self.color]
+	if self.type == block_type.STRIPED_H then
+		e = "eyes-" .. e
+		c = "fish-" .. c .. "-h"
+	elseif self.type == block_type.STRIPED_V then
+		e = "eyes-" .. e
+		c = "fish-" .. c .. "-v"
+	elseif self.type == block_type.WRAPPED then
+		msg.post("#sprite-eyes", "disable")
+		go.cancel_animations("#", "blink")
+		e = "eyes-" .. e
+		c = "fish-" .. c .. "-w"
+	elseif self.type == block_type.BOMB then
+		e = "eyes-starfish"
+		c = "fish-starfish"
+	else
+		e = "eyes-" .. c
+		c = "fish-" .. c
+	end
+	change_sprite(hash(c))
+	change_eyes(hash(e))
+end
+
 
 function init(self)
 	-- store original rotation
@@ -60,17 +85,7 @@ function init(self)
 	--
 	go.set_scale(normal_scale)
 	msg.post("#", "sway")
-
-	-- The type property dictates what look the sprite takes.
-	--
-	if self.color ~= nil then
-		-- All fish are created plain
-		local c = colors[self.color]
-		change_sprite(hash("fish-" .. c))
-		change_eyes(hash("eyes-" .. c))
-	else
-		msg.post("#sprite", "disable")
-	end
+	update_sprites(self)
 
 	self.blinking = false
 	blink(self)
@@ -79,33 +94,10 @@ end
 
 function on_message(self, message_id, message, sender)
 	if message_id == emthree.CHANGE then
-		--
-		-- Sometimes we reuse fish game objects, for example when
-		-- a fish changes to a striped one.
-		--
-		particlefx.stop("#explosion")
+		self.color = message.color or block_color.YELLOW
+		self.type = message.type or block_type.PLAIN
 		go.set_position(message.position)
-		msg.post("#sprite", "enable")
-		msg.post("#sprite-eyes", "enable")
-		local c = colors[message.color]
-		local e = colors[message.color]
-		if message.type == type_striped_h then
-			e = "eyes-" .. e
-			c = "fish-" .. c .. "-h"
-		elseif message.type == type_striped_v then
-			e = "eyes-" .. e
-			c = "fish-" .. c .. "-v"
-		elseif message.type == type_wrapped then
-			msg.post("#sprite-eyes", "disable")
-			go.cancel_animations("#", "blink")
-			e = "eyes-" .. e
-			c = "fish-" .. c .. "-w"
-		elseif message.type == type_bomb then
-			e = "eyes-starfish"
-			c = "fish-starfish"
-		end
-		change_sprite(hash(c))
-		change_eyes(hash(e))
+		update_sprites(self)
 	elseif message_id == hash("sway") then
 		local rot = go.get(".", "euler.z")
 		go.set(".", "euler.z", rot - 1)

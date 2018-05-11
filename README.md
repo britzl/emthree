@@ -68,6 +68,18 @@ Get all blocks of a certain color
 * ```blocks``` (table) - A list of all blocks matching the specified color
 
 
+### emthree.get_block(board, x, y)
+Get the block at a specific position
+
+**PARAMETERS**
+* ```board``` (table) - The board to get the block from
+* ```x``` (number) - Horizontal position
+* ```y``` (number) - Vertical position
+
+**RETURN**
+* ```block``` (table) - The block or nil if position is outside board
+
+
 ### emthree.remove_block(board, block)
 Remove a block from the board. This will invoke the function specified by `emthree.on_block_removed()`. This will also post an `emthree.REMOVE` message to the game object representing the block.
 
@@ -93,11 +105,12 @@ Change a block on the board from one type and color to another. This will post a
 * ```color``` (any) - The color to change to
 
 
-### emthree.stabilize(board)
+### emthree.stabilize(board, callback)
 Stabilize the board. This will search through the board for any matches, remove these and the spawn new blocks. This process will be repeated until there are no matches to remove or new blocks to spawn. When the board is stable it will invoke the function specified by `emthree.on_stabilized`.
 
 **PARAMETERS**
 * ```board``` (table) - The board to stabilize
+* ```callback``` (function) - Optional function to call when the board is stable
 
 
 ### emthree.on_input(board, action)
@@ -113,7 +126,15 @@ Set a function to be called whenever a match on the board is detected. Use this 
 
 **PARAMETERS**
 * ```board``` (table) - The board that will notify when a match is detected
-* ```fn``` (function) - The function to call when a match is detected. The function will receive `board` and `block` as arguments.
+* ```fn``` (function) - The function to call when a match is detected.
+
+The function must accept the following arguments:
+
+**PARAMETERS**
+* ```board``` (table) - The board where the match was detected
+* ```block``` (table) - A block that is part of the match
+* ```horisontal_neighbors``` (table) - A list of horizontal neighboring blocks that are part of the match
+* ```vertical_neighbors``` (table) - A list of vertical neighboring blocks that are part of the match
 
 
 ### emthree.on_block_removed(board, fn)
@@ -138,6 +159,18 @@ Set a function to be called whenever a two blocks have swapped places based on u
 **PARAMETERS**
 * ```board``` (table) - The board where swaps will be notified
 * ```fn``` (function) - The function to call when a swap is made. The function is expected to take `board`, `slot1` and `slot2` as arguments and return true if swap resulted in any changes on the board.
+
+
+### emthree.screen_to_slot(board, x, y)
+Get the slot at a screen position
+
+**PARAMETERS**
+* ```board``` (table) - The board to get the slot from
+* ```x``` (number) - Horizontal Screen position (pixels)
+* ```y``` (number) - Vertical screen position (pixels)
+
+**RETURN**
+* ```slot``` (table) - The slot at the specified screen position
 
 
 ## Messages

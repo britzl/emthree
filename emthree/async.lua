@@ -12,7 +12,8 @@ function M.async(fn, ...)
 	fn(function(...)
 		results = { ... }
 		if state == "YIELDED" then
-			coroutine.resume(co)
+			local ok, err = coroutine.resume(co)
+			if not ok then print(err) end
 		else
 			state = "DONE"
 		end
@@ -29,7 +30,6 @@ end
 function M.http_request(url, method, headers, post_data, options)
 	return M.async(function(done)
 		http.request(url, method, function(self, id, response)
-			pprint(response)
 			done(response)
 		end, headers, post_data, options)
 	end)

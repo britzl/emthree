@@ -170,7 +170,7 @@ local function collapse(board, callback)
 		--
 		dy = 0
 		for y = 0,board.height - 1 do
-			if blocks[x][y] ~= nil then
+			if blocks[x][y] then
 				if dy > 0 then
 					--
 					-- Move down dy steps
@@ -221,14 +221,10 @@ function M.create_board(width, height, blocksize, createblock_fn)
 		slots = {},
 		createblock_fn = createblock_fn,
 	}
-	local pos = vmath.vector3()
 	for x = 0, width - 1 do
-		pos.x = blocksize / 2 + blocksize * x
 		board.slots[x] = {}
 		for y = 0, height - 1 do
-			pos.y = blocksize / 2 + blocksize * y
-			local id, color, type = createblock_fn(pos)
-			board.slots[x][y] = { id = id, x = x, y = y, color = color, type = type }
+			M.create_block(board, x, y)
 		end
 	end
 
@@ -289,19 +285,21 @@ local function swap_slots(board, slot1, slot2)
 	assert(board, "You must provide a board")
 	assert(slot1, "You must provide a first slot")
 	assert(slot2, "You must provide a second slot")
-	coroutine.wrap(function()
+	local co = coroutine.create(function()
 		async(function(done) swap(board, slot1, slot2, done) end)
 		if not board.on_swap(board, slot1, slot2) then
 			local hn1 = horisontal_neighbors(board, slot1.x, slot1.y)
 			local vn1 = vertical_neighbors(board, slot1.x, slot1.y)
 			local hn2 = horisontal_neighbors(board, slot2.x, slot2.y)
 			local vn2 = vertical_neighbors(board, slot2.x, slot2.y)
+			-- not a valid swap, did not generate a match - swap back again
 			if #hn1 < 2 and #hn2 < 2 and #vn1 < 2 and #vn2 < 2 then
 				async(function(done) swap(board, slot1, slot2, done) end)
 			end
 		end
 		M.stabilize(board)
-	end)()
+	end)
+	coroutine.resume(co)
 end
 
 --
@@ -328,6 +326,21 @@ function M.iterate_slots(board)
 	end
 end
 
+
+--- Get a block on the board
+-- @param board
+-- @param x
+-- @param y
+-- @return The block at the given position or nil if out of bounds
+function M.get_block(board, x, y)
+	assert(board, "You must provide a board")
+	assert(x and y, "You must provide a position")
+	if M.on_board(board, x, y) then
+		return board.slots[x][y]
+	end
+	return nil
+end
+
 ---
 -- Get all blocks of a specific color
 -- @param board
@@ -346,9 +359,12 @@ end
 --
 -- Remove a single block from the board
 --
-function M.remove_block(board, block)
+function M.remove_block(board, block, no_trigger)
 	assert(board, "You must provide a board")
-	assert(block, "You must provide a block to remove")
+
+	if not block then
+		return
+	end
 
 	if not board.slots[block.x][block.y] then
 		-- the block has already been removed
@@ -363,7 +379,9 @@ function M.remove_block(board, block)
 	--
 	board.slots[block.x][block.y] = nil
 
-	board.on_block_removed(board, block)
+	if not no_trigger then
+		board.on_block_removed(board, block)
+	end
 end
 
 
@@ -386,11 +404,25 @@ end
 -- Will clear list of neighbors
 --
 function M.change_block(block, type, color)
+	assert(block, "You must provide a block")
+	assert(type or color, "You must provide type and/or color")
 	block.color = color
 	block.type = type
 	block.vertical_neighbors = {}
 	block.horisontal_neighbors = {}
 	msg.post(block.id, M.CHANGE, { color = block.color, type = block.type, position = go.get_position(block.id) })
+end
+
+
+--- Create a new block on the board
+function M.create_block(board, x, y, type, color)
+	assert(board, "You must provide a board")
+	assert(x and y, "You must provide a position")
+
+	local sx, sy = M.slot_to_screen(board, x, y)
+	local id, color, type = board.createblock_fn(vmath.vector3(sx, sy, 0), type, color)
+	board.slots[x][y] = { id = id, x = x, y = y, color = color, type = type }
+	return board.slots[x][y]
 end
 
 
@@ -402,7 +434,7 @@ local function find_empty_slots(board)
 	local slots = {}
 	for x = 0, board.width - 1 do
 		for y = 0, board.height - 1 do
-			if board.slots[x][y] == nil then
+			if not board.slots[x][y] then
 				--
 				-- The slot is nil/empty so we store this position in the
 				-- list of slots that we will return
@@ -422,31 +454,15 @@ local function fill_empty_slots(board, empty_slots, callback)
 	assert(board, "You must provide a board")
 	local duration = 0.3
 	--
-	-- Go through the list of empty slots and drop a (reused) block
+	-- Go through the list of empty slots and drop a block
 	-- game object into its position.
 	--
-	local pos = vmath.vector3()	-- Reuse through loop
+	local offset = vmath.vector3(0, 1000, 0)
 	for i, s in pairs(empty_slots) do
-		--
-		-- Calc the x position of this slot
-		--
-		pos.x = board.blocksize / 2 + board.blocksize * s.x
-		--
-		-- Start above the screen so we can animate into place
-		--
-		pos.y = 1000
-		--
-		-- Create a new block game object
-		--
-		local id, color, type = board.createblock_fn(pos)
-		--
-		-- Animate into the slot's calculated y position
-		--
-		go.animate(id, "position.y", go.PLAYBACK_ONCE_FORWARD, board.blocksize / 2 + board.blocksize * s.y, go.EASING_OUTBOUNCE, duration)
-		--
-		-- Store the new data in the slot (it was nil)
-		--
-		board.slots[s.x][s.y] = { id = id, type = type, color = color, x = s.x, y = s.y }
+		local block = M.create_block(board, s.x, s.y)
+		local position = go.get_position(block.id)
+		go.set_position(vmath.vector3(position.x, 1000, position.z), block.id)
+		go.animate(block.id, "position.y", go.PLAYBACK_ONCE_FORWARD, position.y, go.EASING_OUTBOUNCE, duration)
 	end
 
 	timer.seconds(duration, callback)
@@ -466,9 +482,10 @@ end
 -- place. This process will be repeated until the board is filled and no
 -- more matches exists. The board is at that point considered stable
 -- @param board The board to stabilize
-function M.stabilize(board)
+-- @param callback Optional callback to invoke when board is stable
+function M.stabilize(board, callback)
 	assert(board, "You must provide a board")
-	coroutine.wrap(function()
+	local fn = function()
 		while true do
 			async(function(done) match_and_remove(board, done) end)
 			async(function(done) collapse(board, done) end)
@@ -485,15 +502,21 @@ function M.stabilize(board)
 			--
 			async(function(done) fill_empty_slots(board, empty_slots, done) end)
 		end
-	end)()
+	end
+	
+	if not coroutine.running() then
+		local co = coroutine.create(fn)
+		local ok, err = coroutine.resume(co)
+		if not ok then
+			print(err)
+		end
+	else
+		fn()
+	end
 end
 
-
-local function get_slot(board, x, y)
-	if x >= 0 and x < board.width and y >= 0 and y < board.height then
-		return board.slots[x][y]
-	end
-	return nil
+function M.on_board(board, x, y)
+	return x >= 0 and x < board.width and y >= 0 and y < board.height
 end
 
 local function clamp(value, min, max)
@@ -503,35 +526,34 @@ local function clamp(value, min, max)
 end
 
 function M.on_input(board, action)
+	assert(board, "You must provide a board")
 	assert(action.pressed or action.released, "You must provide either a pressed or released action")
-	local pos = go.get_position()
-	local x = math.floor((action.x - pos.x) / board.blocksize)
-	local y = math.floor((action.y - pos.y) / board.blocksize)
-	local slot = get_slot(board, x, y)
+	local x, y = M.screen_to_slot(board, action.x, action.y)
+	local block = M.get_block(board, x, y)
 
 	if action.pressed then
 		if not board.mark_1 then
-			board.mark_1 = slot
+			board.mark_1 = block
 		else
-			board.mark_2 = slot
+			board.mark_2 = block
 		end
-		return slot ~= nil
+		return block ~= nil
 	else
 
 		if board.mark_1 and board.mark_1 == board.mark_2 then
-			-- second click, released on the first slot again -> deselect it
+			-- second click, released on the first block again -> deselect it
 			msg.post(board.mark_1.id, M.RESET)
 			board.mark_1 = nil
 			board.mark_2 = nil
 			return true
 
-		elseif board.mark_1 and board.mark_1 == slot then
-			-- first click, released on the first slot -> select it
+		elseif board.mark_1 and board.mark_1 == block then
+			-- first click, released on the first block -> select it
 			msg.post(board.mark_1.id, M.SELECT)
 			return true
 
-		elseif board.mark_2 and board.mark_2 == slot then
-			-- second click, released on the second slot -> swap them
+		elseif board.mark_2 and board.mark_2 == block then
+			-- second click, released on the second block -> swap them
 			local dx = math.abs(board.mark_1.x - board.mark_2.x)
 			local dy = math.abs(board.mark_1.y - board.mark_2.y)
 			if (dx == 1 and dy == 0) or (dy == 1 and dx == 0) then
@@ -543,12 +565,12 @@ function M.on_input(board, action)
 			return true
 
 		elseif board.mark_1 and not board.mark_2 then
-			-- one slot selected, released on some other slot -> swipe and swap
+			-- one block selected, released on some other block -> swipe and swap
 			local dx = clamp(board.mark_1.x - x, -1, 1)
 			local dy = clamp(board.mark_1.y - y, -1, 1)
-			slot = get_slot(board, board.mark_1.x - dx, board.mark_1.y - dy)
-			if dx == 0 or dy == 0 and slot then
-				swap_slots(board, board.mark_1, slot)
+			block = M.get_block(board, board.mark_1.x - dx, board.mark_1.y - dy)
+			if dx == 0 or dy == 0 and block then
+				swap_slots(board, board.mark_1, block)
 			end
 			msg.post(board.mark_1.id, M.RESET)
 			board.mark_1 = nil
@@ -565,6 +587,62 @@ function M.on_input(board, action)
 			end
 		end
 	end
+end
+
+
+function M.screen_to_slot(board, x, y)
+	assert(board, "You must provide a board")
+	assert(x and y, "You must provide a position")
+	local pos = go.get_position()
+	local x = math.floor((x - pos.x) / board.blocksize)
+	local y = math.floor((y - pos.y) / board.blocksize)
+	return x, y
+end
+
+
+function M.slot_to_screen(board, x, y)
+	assert(board, "You must provide a board")
+	assert(x and y, "You must provide a position")
+	local x = (board.blocksize / 2) + (board.blocksize * x)
+	local y = (board.blocksize / 2) + (board.blocksize * y)
+	return x, y
+end
+
+
+function M.color_frequency(board)
+	local f = {}
+	for block in M.iterate_slots(board) do
+		if block.color then
+			f[block.color] = f[block.color] or 0
+		end
+		f[block.color] = f[block.color] + 1
+	end
+	local l = {}
+	for color,count in pairs(f) do
+		table.insert(l, { color = color, count = count })
+	end
+	table.sort(l, function(a, b)
+		return a.count > b.count
+	end)
+	return l
+end
+
+
+function M.dump(board)
+	local s = ""
+	for y = 0, board.height - 1 do
+		s = s .. y .. ":"
+		for x = 0, board.width - 1 do
+			local block = board.slots[x][y]
+			if block then
+				s = s ..  "O"
+			else
+				s = s ..  " "
+			end
+		end
+		s = s .. "\n"
+	end
+	return s
 end
 
 

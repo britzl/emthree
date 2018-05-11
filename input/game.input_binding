@@ -1,3 +1,51 @@
+key_trigger {
+  input: KEY_B
+  action: "bomb"
+}
+key_trigger {
+  input: KEY_W
+  action: "wrapped"
+}
+key_trigger {
+  input: KEY_H
+  action: "horizontal"
+}
+key_trigger {
+  input: KEY_V
+  action: "vertical"
+}
+key_trigger {
+  input: KEY_1
+  action: "color1"
+}
+key_trigger {
+  input: KEY_2
+  action: "color2"
+}
+key_trigger {
+  input: KEY_3
+  action: "color3"
+}
+key_trigger {
+  input: KEY_4
+  action: "color4"
+}
+key_trigger {
+  input: KEY_5
+  action: "color5"
+}
+key_trigger {
+  input: KEY_ESC
+  action: "cancel"
+}
+key_trigger {
+  input: KEY_SPACE
+  action: "stabilize"
+}
+key_trigger {
+  input: KEY_BACKSPACE
+  action: "delete"
+}
 mouse_trigger {
   input: MOUSE_BUTTON_1
   action: "touch"
