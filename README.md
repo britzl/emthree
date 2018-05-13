@@ -19,14 +19,22 @@ This documentation uses a number of different concepts to describe the functiona
 ### Board
 A grid of slots where the game is played.
 
+![](images/board.png)
+
 ### Slot
 A position on the board. A slot can hold a block.
+
+![](images/slot.png)
 
 ### Block
 A block represents an element in a slot on the board. It could be fish, candy, cakes or something else, fitting the theme of the game. Blocks have a color and an optional type.
 
+![](images/block.png)
+
 ### Match
 Three or more blocks of the same color is considered a match.
+
+![](images/match.png)
 
 ### Stable Board
 A board is considered stable when the board doesn't contain any matches and all slots are filled with blocks.
