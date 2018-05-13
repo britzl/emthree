@@ -3,8 +3,8 @@ go.property("type", hash("plain"))
 go.property("blink", 0)
 
 local emthree = require "emthree.emthree"
-local block_color = require "ocean-commotion.color"
-local block_type = require "ocean-commotion.type"
+local block_color = require "examples.ocean-commotion.color"
+local block_type = require "examples.ocean-commotion.type"
 
 
 local normal_scale = 0.45		-- The normal render size

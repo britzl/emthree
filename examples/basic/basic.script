@@ -2,7 +2,7 @@ local emthree = require "emthree.emthree"
 local effects = require "emthree.effects"
 
 local blocksize = 80		-- Distance between block centers
-local boardwidth = 9		-- Number of columns
+local boardwidth = 6		-- Number of columns
 local boardheight = 9		-- Number of rows
 
 local colors = {

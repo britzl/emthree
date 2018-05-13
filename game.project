@@ -10,8 +10,8 @@ main_collection = /examples/basic/basic.collectionc
 game_binding = /input/game.input_bindingc
 
 [display]
-width = 1024
-height = 1024
+width = 640
+height = 1136
 high_dpi = 1
 
 [physics]

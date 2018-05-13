@@ -35,8 +35,28 @@ embedded_instances {
   "    w: 1.0\n"
   "  }\n"
   "}\n"
-  "embedded_components {\n"
-  "  id: \"logo\"\n"
+  ""
+  position {
+    x: 35.0
+    y: 110.0
+    z: 0.0
+  }
+  rotation {
+    x: 0.0
+    y: 0.0
+    z: 0.0
+    w: 1.0
+  }
+  scale3 {
+    x: 1.0
+    y: 1.0
+    z: 1.0
+  }
+}
+embedded_instances {
+  id: "logo"
+  data: "embedded_components {\n"
+  "  id: \"label\"\n"
   "  type: \"label\"\n"
   "  data: \"size {\\n"
   "  x: 128.0\\n"
@@ -78,8 +98,8 @@ embedded_instances {
   "material: \\\"/builtins/fonts/label.material\\\"\\n"
   "\"\n"
   "  position {\n"
-  "    x: 432.0\n"
-  "    y: 926.0\n"
+  "    x: 0.0\n"
+  "    y: 0.0\n"
   "    z: 0.0\n"
   "  }\n"
   "  rotation {\n"
@@ -91,9 +111,9 @@ embedded_instances {
   "}\n"
   ""
   position {
-    x: 76.0
-    y: 61.0
-    z: 0.0
+    x: 320.0
+    y: 1067.0
+    z: 1.0
   }
   rotation {
     x: 0.0

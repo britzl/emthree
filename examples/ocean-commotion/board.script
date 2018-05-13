@@ -1,10 +1,10 @@
 local emthree = require "emthree.emthree"
 local effects = require "emthree.effects"
-local block_color = require "ocean-commotion.color"
-local block_type = require "ocean-commotion.type"
+local block_color = require "examples.ocean-commotion.color"
+local block_type = require "examples.ocean-commotion.type"
 
 local blocksize = 96		-- Distance between block centers
-local boardwidth = 9		-- Number of columns
+local boardwidth = 6		-- Number of columns
 local boardheight = 9		-- Number of rows
 
 --
@@ -164,7 +164,6 @@ function init(self)
 
 	-- start the board
 	emthree.stabilize(self.board, function()
-		print("oooo stable")
 		msg.post(".", "acquire_input_focus")
 	end)
 
