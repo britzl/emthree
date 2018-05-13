@@ -1,7 +1,7 @@
 local M = {}
 
 local async = require "emthree.async"
-
+local utils = require "emthree.utils"
 
 M.REMOVE = hash("emthree_remove")
 M.CHANGE = hash("emthree_change")
@@ -208,7 +208,11 @@ end
 -- Each slot stores the id of the game object that sits there, the x and y
 -- position and the type, for easy searching. Storing the x and y position is
 -- redundant but useful if we use the slots out of context, which we do at times.
---
+-- @param width
+-- @param height
+-- @param blocksize Size of the blocks in pixels
+-- @param createblock_fn
+-- @return The created bord. Pass it when calling the other functions
 function M.create_board(width, height, blocksize, createblock_fn)
 	assert(width, "You must provide a board width")
 	assert(height, "You must provide a board height")
@@ -285,27 +289,26 @@ local function swap_slots(board, slot1, slot2)
 	assert(board, "You must provide a board")
 	assert(slot1, "You must provide a first slot")
 	assert(slot2, "You must provide a second slot")
-	local co = coroutine.create(function()
-		async(function(done) swap(board, slot1, slot2, done) end)
-		if not board.on_swap(board, slot1, slot2) then
-			local hn1 = horisontal_neighbors(board, slot1.x, slot1.y)
-			local vn1 = vertical_neighbors(board, slot1.x, slot1.y)
-			local hn2 = horisontal_neighbors(board, slot2.x, slot2.y)
-			local vn2 = vertical_neighbors(board, slot2.x, slot2.y)
-			-- not a valid swap, did not generate a match - swap back again
-			if #hn1 < 2 and #hn2 < 2 and #vn1 < 2 and #vn2 < 2 then
-				async(function(done) swap(board, slot1, slot2, done) end)
-			end
+	assert(coroutine.running())
+	async(function(done) swap(board, slot1, slot2, done) end)
+	if not board.on_swap(board, slot1, slot2) then
+		local hn1 = horisontal_neighbors(board, slot1.x, slot1.y)
+		local vn1 = vertical_neighbors(board, slot1.x, slot1.y)
+		local hn2 = horisontal_neighbors(board, slot2.x, slot2.y)
+		local vn2 = vertical_neighbors(board, slot2.x, slot2.y)
+		-- not a valid swap, did not generate a match - swap back again
+		if #hn1 < 2 and #hn2 < 2 and #vn1 < 2 and #vn2 < 2 then
+			async(function(done) swap(board, slot1, slot2, done) end)
 		end
-		M.stabilize(board)
-	end)
-	coroutine.resume(co)
+	end
+	M.stabilize(board)
 end
 
 --
 -- Return an iterator function for use in generic for loops
 -- to iterate all slots on the board
---
+-- @param board
+-- @return Function iterator
 function M.iterate_slots(board)
 	assert(board, "You must provide a board")
 	local x = 0
@@ -345,6 +348,7 @@ end
 -- Get all blocks of a specific color
 -- @param board
 -- @param color Color to search for or nil to get all blocks
+-- @return All blocks of the specified color
 function M.get_blocks(board, color)
 	assert(board, "You must provide a board")
 	local blocks = {}
@@ -358,7 +362,10 @@ end
 
 --
 -- Remove a single block from the board
---
+-- @param board
+-- @param block The block to remove
+-- @param no_trigger True if the on_block_removed function
+-- should NOT be called (defaults to true)
 function M.remove_block(board, block, no_trigger)
 	assert(board, "You must provide a board")
 
@@ -387,7 +394,8 @@ end
 
 --
 -- Remove a list of blocks from the board
---
+-- @param board
+-- @param blocks
 function M.remove_blocks(board, blocks)
 	assert(board, "You must provide a board")
 	assert(blocks, "You must provide a list of blocks")
@@ -402,7 +410,6 @@ end
 -- Use this when converting blocks into other types due
 -- to a match of some kind
 -- Will clear list of neighbors
---
 function M.change_block(block, type, color)
 	assert(block, "You must provide a block")
 	assert(type or color, "You must provide type and/or color")
@@ -414,7 +421,13 @@ function M.change_block(block, type, color)
 end
 
 
---- Create a new block on the board
+--- Create a new block on the board. This will call the function that was provided
+--. when the board was created
+-- @param board
+-- @param x
+-- @param y
+-- @param type
+-- @param color
 function M.create_block(board, x, y, type, color)
 	assert(board, "You must provide a board")
 	assert(x and y, "You must provide a position")
@@ -468,15 +481,6 @@ local function fill_empty_slots(board, empty_slots, callback)
 	timer.seconds(duration, callback)
 end
 
-
-local function match_and_remove(board, callback)
-	assert(board, "You must provide a board")
-	assert(callback, "You must provide a callback")
-	find_matching_neighbors(board)
-	remove_matching_neighbors(board, callback)
-end
-
-
 --- Stabilize the board
 -- This will find and remove matching blocks and spawn new blocks in their
 -- place. This process will be repeated until the board is filled and no
@@ -487,44 +491,44 @@ function M.stabilize(board, callback)
 	assert(board, "You must provide a board")
 	local fn = function()
 		while true do
-			async(function(done) match_and_remove(board, done) end)
+			async(function(done)
+				find_matching_neighbors(board)
+				remove_matching_neighbors(board, done)
+			end)
 			async(function(done) collapse(board, done) end)
-			--
+
 			-- Find empty slots, exit if all slots are full
-			--
 			local empty_slots = find_empty_slots(board)
 			if #empty_slots == 0 then
 				board.on_stabilized(board)
+				if callback then callback() end
 				break
 			end
-			--
-			-- Fill empty slots.
-			--
 			async(function(done) fill_empty_slots(board, empty_slots, done) end)
 		end
 	end
 	
 	if not coroutine.running() then
-		local co = coroutine.create(fn)
-		local ok, err = coroutine.resume(co)
-		if not ok then
-			print(err)
-		end
+		utils.corun(fn)
 	else
 		fn()
 	end
 end
 
+
+--- Check if a position is on the board or not
+-- @param board
+-- @param x
+-- @param y
+-- @return true of the position is on the board
 function M.on_board(board, x, y)
 	return x >= 0 and x < board.width and y >= 0 and y < board.height
 end
 
-local function clamp(value, min, max)
-	if value > max then return max end
-	if value < min then return min end
-	return value
-end
-
+--- Handle user input
+-- @param board The board to apply the input on
+-- @param action The user action table (must be a pressed or released action)
+-- @return true if the action was handled
 function M.on_input(board, action)
 	assert(board, "You must provide a board")
 	assert(action.pressed or action.released, "You must provide either a pressed or released action")
@@ -554,26 +558,34 @@ function M.on_input(board, action)
 
 		elseif board.mark_2 and board.mark_2 == block then
 			-- second click, released on the second block -> swap them
-			local dx = math.abs(board.mark_1.x - board.mark_2.x)
-			local dy = math.abs(board.mark_1.y - board.mark_2.y)
-			if (dx == 1 and dy == 0) or (dy == 1 and dx == 0) then
-				swap_slots(board, board.mark_1, board.mark_2)
-			end
-			msg.post(board.mark_1.id, M.RESET)
-			board.mark_1 = nil
-			board.mark_2 = nil
+			utils.corun(function()
+				msg.post(".", "release_input_focus")
+				local dx = math.abs(board.mark_1.x - board.mark_2.x)
+				local dy = math.abs(board.mark_1.y - board.mark_2.y)
+				if (dx == 1 and dy == 0) or (dy == 1 and dx == 0) then
+					swap_slots(board, board.mark_1, board.mark_2)
+				end
+				msg.post(board.mark_1.id, M.RESET)
+				board.mark_1 = nil
+				board.mark_2 = nil
+				msg.post(".", "acquire_input_focus")
+			end)
 			return true
 
 		elseif board.mark_1 and not board.mark_2 then
 			-- one block selected, released on some other block -> swipe and swap
-			local dx = clamp(board.mark_1.x - x, -1, 1)
-			local dy = clamp(board.mark_1.y - y, -1, 1)
-			block = M.get_block(board, board.mark_1.x - dx, board.mark_1.y - dy)
-			if dx == 0 or dy == 0 and block then
-				swap_slots(board, board.mark_1, block)
-			end
-			msg.post(board.mark_1.id, M.RESET)
-			board.mark_1 = nil
+			utils.corun(function()
+				msg.post(".", "release_input_focus")
+				local dx = utils.clamp(board.mark_1.x - x, -1, 1)
+				local dy = utils.clamp(board.mark_1.y - y, -1, 1)
+				block = M.get_block(board, board.mark_1.x - dx, board.mark_1.y - dy)
+				if dx == 0 or dy == 0 and block then
+					swap_slots(board, board.mark_1, block)
+				end
+				msg.post(board.mark_1.id, M.RESET)
+				board.mark_1 = nil
+				msg.post(".", "acquire_input_focus")
+			end)
 			return true
 
 		else
@@ -589,7 +601,12 @@ function M.on_input(board, action)
 	end
 end
 
-
+-- Convert a screen position to slot on the board
+-- @param board
+-- @param x
+-- @param y
+-- @return slot_x
+-- @return slot_y
 function M.screen_to_slot(board, x, y)
 	assert(board, "You must provide a board")
 	assert(x and y, "You must provide a position")
@@ -600,6 +617,12 @@ function M.screen_to_slot(board, x, y)
 end
 
 
+-- Convert a board position to a screen position
+-- @param board
+-- @param x
+-- @param y
+-- @return screen_x
+-- @return screen_y
 function M.slot_to_screen(board, x, y)
 	assert(board, "You must provide a board")
 	assert(x and y, "You must provide a position")
@@ -646,6 +669,7 @@ function M.dump(board)
 end
 
 
+--- Set a function to be called when a match is detected on the board
 function M.on_match(board, fn)
 	assert(board, "You must provide a board")
 	assert(fn, "You must provide a function")
@@ -653,6 +677,7 @@ function M.on_match(board, fn)
 end
 
 
+--- Set a function to be called when a block is removed
 function M.on_block_removed(board, fn)
 	assert(board, "You must provide a board")
 	assert(fn, "You must provide a function")
@@ -660,6 +685,7 @@ function M.on_block_removed(board, fn)
 end
 
 
+--- Set a function to be called when a board is stabilized
 function M.on_stabilized(board, fn)
 	assert(board, "You must provide a board")
 	assert(fn, "You must provide a function")
@@ -667,6 +693,7 @@ function M.on_stabilized(board, fn)
 end
 
 
+--- Set a function to be called when two blocks have been swapped by the user
 function M.on_swap(board, fn)
 	assert(board, "You must provide a board")
 	assert(fn, "You must provide a function")

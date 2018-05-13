@@ -1,0 +1,14 @@
+go.property("color", hash("yellow"))
+go.property("type", hash("plain"))
+
+local emthree = require "emthree.emthree"
+
+function init(self)
+	msg.post("#sprite", "play_animation", { id = self.color })
+end
+
+function on_message(self, message_id, message, sender)
+	if message_id == emthree.REMOVE then
+		go.delete()
+	end
+end

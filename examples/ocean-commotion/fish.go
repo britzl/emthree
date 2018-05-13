@@ -15,7 +15,7 @@ components {
 }
 components {
   id: "script"
-  component: "/ocean-commotion/fish.script"
+  component: "/examples/ocean-commotion/fish.script"
   position {
     x: 0.0
     y: 0.0

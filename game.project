@@ -4,7 +4,7 @@ version = 0.1
 dependencies = https://github.com/britzl/defold-timer/archive/1.1.1.zip,https://github.com/defold/defold-examples/releases/download/0.2.0/ocean-commotion.zip
 
 [bootstrap]
-main_collection = /ocean-commotion/ocean-commotion.collectionc
+main_collection = /examples/basic/basic.collectionc
 
 [input]
 game_binding = /input/game.input_bindingc

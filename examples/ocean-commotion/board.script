@@ -52,11 +52,6 @@ local function create_block(position, type, color)
 end
 
 
-local function on_stabilized(board)
-	msg.post(".", "acquire_input_focus")
-end
-
-
 local function on_match(board, block, horisontal_neighbors, vertical_neighbors)
 	-- handle t, l and cross shaped formations
 	if #horisontal_neighbors >= 2 and #vertical_neighbors >= 2 then
@@ -166,10 +161,12 @@ function init(self)
 	emthree.on_match(self.board, on_match)
 	emthree.on_block_removed(self.board, on_block_removed)
 	emthree.on_swap(self.board, on_swap)
-	emthree.on_stabilized(self.board, on_stabilized)
 
 	-- start the board
-	emthree.stabilize(self.board)
+	emthree.stabilize(self.board, function()
+		print("oooo stable")
+		msg.post(".", "acquire_input_focus")
+	end)
 
 	self.on_touch = emthree.on_input
 end

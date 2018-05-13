@@ -1,0 +1,38 @@
+local emthree = require "emthree.emthree"
+local effects = require "emthree.effects"
+
+local blocksize = 80		-- Distance between block centers
+local boardwidth = 9		-- Number of columns
+local boardheight = 9		-- Number of rows
+
+local colors = {
+	hash("brickBlue06"),
+	hash("brickGreen05"),
+	hash("brickRed04"),
+	hash("brickWhite05"),
+	hash("brickYellow03"),
+}
+
+local function create_block(position, type, color)
+	if not type and not color then
+		color = color or colors[math.random(#colors)]
+	end
+	local id = factory.create("#factory", position, null, { color = color, type = type })
+	msg.post(id, "set_parent", { parent_id = go.get_id(), keep_world_transform = 0 })
+	return id, color, type
+end
+
+
+function init(self)
+	self.board = emthree.create_board(boardwidth, boardheight, blocksize, create_block)
+	emthree.stabilize(self.board, function()
+		msg.post(".", "acquire_input_focus")
+	end)
+end
+
+
+function on_input(self, action_id, action)
+	if action_id == hash("touch") and (action.pressed or action.released) then
+		return emthree.on_input(self.board, action)
+	end
+end

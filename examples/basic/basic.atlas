@@ -1,0 +1,42 @@
+images {
+  image: "/examples/basic/assets/brickBlue06.png"
+}
+images {
+  image: "/examples/basic/assets/brickGreen05.png"
+}
+images {
+  image: "/examples/basic/assets/brickRed04.png"
+}
+images {
+  image: "/examples/basic/assets/brickSpecial01.png"
+}
+images {
+  image: "/examples/basic/assets/brickSpecial02.png"
+}
+images {
+  image: "/examples/basic/assets/brickSpecial03.png"
+}
+images {
+  image: "/examples/basic/assets/brickSpecial06.png"
+}
+images {
+  image: "/examples/basic/assets/brickSpecial07.png"
+}
+images {
+  image: "/examples/basic/assets/brickSpecial08.png"
+}
+images {
+  image: "/examples/basic/assets/brickSpecial09.png"
+}
+images {
+  image: "/examples/basic/assets/brickSpecial10.png"
+}
+images {
+  image: "/examples/basic/assets/brickWhite05.png"
+}
+images {
+  image: "/examples/basic/assets/brickYellow03.png"
+}
+margin: 0
+extrude_borders: 2
+inner_padding: 0
