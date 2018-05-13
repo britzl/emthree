@@ -1,5 +1,5 @@
 # Emthree
-Emthree is a match 3 engine for Defold.
+Emthree is a match three engine for Defold.
 
 
 # Setup
@@ -9,6 +9,20 @@ You can use Emthree in your own project by adding this project as a [Defold libr
 https://github.com/britzl/emthree/archive/master.zip
 
 Or point to the ZIP file of a [specific release](https://github.com/britzl/emthree/releases).
+
+
+# Examples
+
+## Basic
+The most basic match three game without any special blocks or effects.
+
+* https://britzl.github.io/EmthreeBasic/
+
+
+## Advanced
+A more advanced example with several different special combinations.
+
+* https://britzl.github.io/EmthreeOceanCommotion/
 
 
 # Usage
