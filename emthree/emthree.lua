@@ -181,7 +181,7 @@ local function collapse(board, callback)
 					-- Calc new position and animate
 					---
 					blocks[x][y - dy].y = blocks[x][y - dy].y - dy
-					go.animate(blocks[x][y-dy].id, "position.y", go.PLAYBACK_ONCE_FORWARD, board.blocksize / 2 + board.blocksize * (y - dy), go.EASING_OUTBOUNCE, duration)
+					go.animate(blocks[x][y-dy].id, "position.y", go.PLAYBACK_ONCE_FORWARD, board.block_size / 2 + board.block_size * (y - dy), go.EASING_OUTBOUNCE, duration)
 				end
 			else
 				--
@@ -210,20 +210,20 @@ end
 -- redundant but useful if we use the slots out of context, which we do at times.
 -- @param width
 -- @param height
--- @param blocksize Size of the blocks in pixels
--- @param createblock_fn
+-- @param block_size Size of the blocks in pixels
+-- @param create_block_fn
 -- @return The created bord. Pass it when calling the other functions
-function M.create_board(width, height, blocksize, createblock_fn)
+function M.create_board(width, height, block_size, create_block_fn)
 	assert(width, "You must provide a board width")
 	assert(height, "You must provide a board height")
-	assert(blocksize, "You must provide a block size")
-	assert(createblock_fn, "You must provide a function to create blocks")
+	assert(block_size, "You must provide a block size")
+	assert(create_block_fn, "You must provide a function to create blocks")
 	local board = {
 		width = width,
 		height = height,
-		blocksize = blocksize,
+		block_size = block_size,
 		slots = {},
-		createblock_fn = createblock_fn,
+		create_block_fn = create_block_fn,
 	}
 	for x = 0, width - 1 do
 		board.slots[x] = {}
@@ -433,7 +433,7 @@ function M.create_block(board, x, y, type, color)
 	assert(x and y, "You must provide a position")
 
 	local sx, sy = M.slot_to_screen(board, x, y)
-	local id, color, type = board.createblock_fn(vmath.vector3(sx, sy, 0), type, color)
+	local id, color, type = board.create_block_fn(vmath.vector3(sx, sy, 0), type, color)
 	board.slots[x][y] = { id = id, x = x, y = y, color = color, type = type }
 	return board.slots[x][y]
 end
@@ -611,8 +611,8 @@ function M.screen_to_slot(board, x, y)
 	assert(board, "You must provide a board")
 	assert(x and y, "You must provide a position")
 	local pos = go.get_position()
-	local x = math.floor((x - pos.x) / board.blocksize)
-	local y = math.floor((y - pos.y) / board.blocksize)
+	local x = math.floor((x - pos.x) / board.block_size)
+	local y = math.floor((y - pos.y) / board.block_size)
 	return x, y
 end
 
@@ -626,8 +626,8 @@ end
 function M.slot_to_screen(board, x, y)
 	assert(board, "You must provide a board")
 	assert(x and y, "You must provide a position")
-	local x = (board.blocksize / 2) + (board.blocksize * x)
-	local y = (board.blocksize / 2) + (board.blocksize * y)
+	local x = (board.block_size / 2) + (board.block_size * x)
+	local y = (board.block_size / 2) + (board.block_size * y)
 	return x, y
 end
 

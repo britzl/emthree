@@ -94,7 +94,7 @@ Return an iterator function that can be used to iterate all slots on the board
 * ```board``` (table) - The board to iterate
 
 **RETURN**
-* ```fn``` (function) - The iterator function
+* ```fn``` (function) - The iterator function. The function will return a slot.
 
 
 ### emthree.get_blocks(board, color)
@@ -147,11 +147,11 @@ Remove a list of blocks. Will repeatedly call `emthree.remove_block()`.
 
 **PARAMETERS**
 * ```board``` (table) - The board to remove blocks from
-* ```block``` (table) - The blocks to remove
+* ```blocks``` (table) - The blocks to remove
 
 
 ### emthree.change_block(block, type, color)
-Change a block on the board from one type and color to another. This will post an `emthree.RESPAWN` message to the game object representing the block.
+Change a block on the board from one type and color to another. This will post an `emthree.CHANGE` message to the game object representing the block.
 
 **PARAMETERS**
 * ```block``` (table) - The block to change
@@ -160,7 +160,7 @@ Change a block on the board from one type and color to another. This will post a
 
 
 ### emthree.create_block(board, x, y, type, color)
-Create a new block on the board.
+Create a new block on the board. This will call the `create_block_fn` passed to the `emthree.create_board()` function.
 
 **PARAMETERS**
 * ```board``` (table) - The board to create block on
@@ -176,7 +176,7 @@ Create a new block on the board.
 ## EmthreeAPI - Callbacks
 
 ### emthree.on_match(board, fn)
-Set a function to be called whenever a match on the board is detected. Use this callback to remove the blocks involved in the match and optionally also create new blocks based on the match.
+Set a function to be called whenever a match on the board is detected. Use this callback to remove the blocks involved in the match and optionally also create new blocks based on the match. The default implementation will remove the blocks and do nothing else.
 
 **PARAMETERS**
 * ```board``` (table) - The board that will notify when a match is detected
@@ -218,7 +218,7 @@ Set a function to be called whenever a two blocks have swapped places based on u
 ## EmthreeAPI - Utility functions
 
 ### emthree.screen_to_slot(board, x, y)
-Get the slot at a screen position
+Get the slot at a screen position.
 
 **PARAMETERS**
 * ```board``` (table) - The board to get the slot from
@@ -231,7 +231,7 @@ Get the slot at a screen position
 
 
 ### emthree.slot_to_screen(board, x, y)
-Get the screen coordinates of a slot
+Get the screen coordinates of a slot.
 
 **PARAMETERS**
 * ```board``` (table) - The board to get the slot from
