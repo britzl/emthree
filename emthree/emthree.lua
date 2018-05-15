@@ -153,7 +153,8 @@ end
 local function collapse(board, callback)
 	assert(board, "You must provide a board")
 	assert(callback, "You must provide a callback")
-	local duration = 0.3
+	local duration = board.config.collapse_duration
+
 	--
 	-- Slide all remaining blocks down into blank (nil) spots.
 	-- Going column by column makes this easy.
@@ -211,25 +212,23 @@ end
 -- @param width
 -- @param height
 -- @param block_size Size of the blocks in pixels
--- @param create_block_fn
+-- @param config Additional (and optional) board configuration values
 -- @return The created bord. Pass it when calling the other functions
-function M.create_board(width, height, block_size, create_block_fn)
+function M.create_board(width, height, block_size, config)
 	assert(width, "You must provide a board width")
 	assert(height, "You must provide a board height")
 	assert(block_size, "You must provide a block size")
-	assert(create_block_fn, "You must provide a function to create blocks")
+	config = config or {}
+	config.collapse_duration = config.collapse_duration or 0.2
 	local board = {
 		width = width,
 		height = height,
 		block_size = block_size,
 		slots = {},
-		create_block_fn = create_block_fn,
+		config = config,
 	}
 	for x = 0, width - 1 do
 		board.slots[x] = {}
-		for y = 0, height - 1 do
-			M.create_block(board, x, y)
-		end
 	end
 
 	M.on_match(board, function(board, block, horisontal_neighbors, vertical_neighbors)
@@ -254,8 +253,26 @@ function M.create_board(width, height, block_size, create_block_fn)
 	M.on_swap(board, function(board, slot1, slot2)
 		return false
 	end)
+
+	M.on_create_block(board, function(board, x, y, type, color)
+		error("You must call emthree.on_create_block() and provide a function to spawn blocks on the board")
+	end)
 	return board
 end
+
+
+--- Fill the board with blocks
+-- @param board The board to fill
+function M.fill_board(board)
+	for x = 0, board.width - 1 do
+		for y = 0, board.height - 1 do
+			if not self.board.slots[x][y] then
+				M.create_block(board, x, y)
+			end
+		end
+	end
+end
+
 
 
 
@@ -433,7 +450,7 @@ function M.create_block(board, x, y, type, color)
 	assert(x and y, "You must provide a position")
 
 	local sx, sy = M.slot_to_screen(board, x, y)
-	local id, color, type = board.create_block_fn(vmath.vector3(sx, sy, 0), type, color)
+	local id, color, type = board.on_create_block(vmath.vector3(sx, sy, 0), type, color)
 	board.slots[x][y] = { id = id, x = x, y = y, color = color, type = type }
 	return board.slots[x][y]
 end
@@ -698,6 +715,14 @@ function M.on_swap(board, fn)
 	assert(board, "You must provide a board")
 	assert(fn, "You must provide a function")
 	board.on_swap = fn
+end
+
+
+-- The function to call when a block should be created
+function M.on_create_block(board, fn)
+	assert(board, "You must provide a board")
+	assert(fn, "You must provide a function")
+	board.on_create_block = fn
 end
 
 

@@ -24,7 +24,9 @@ end
 
 
 function init(self)
-	self.board = emthree.create_board(boardwidth, boardheight, blocksize, create_block)
+	self.board = emthree.create_board(boardwidth, boardheight, blocksize)
+	emthree.on_create_block(self.board, create_block)
+	emthree.fill_board(self.board)
 	emthree.stabilize(self.board, function()
 		msg.post(".", "acquire_input_focus")
 	end)

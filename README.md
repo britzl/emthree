@@ -56,14 +56,13 @@ A board is considered stable when the board doesn't contain any matches and all 
 
 ## EmthreeAPI - The basics
 
-### emthree.create(width, height, block_size, block_create_fn)
-Create an Emthree board of the specified dimensions, filled with blocks
+### emthree.create(width, height, block_size)
+Create an Emthree board of the specified dimensions
 
 **PARAMETERS**
 * ```width``` (number) - Board width in blocks
 * ```height``` (number) - Board height in blocks
 * ```block_size``` (number) - Size of a block
-* ```block_create_fn``` (function) - Function to call when a new block needs to be created.
 
 **RETURN**
 * ```board``` (table) - A representation of the board, complete with a 2D array of blocks
@@ -160,7 +159,7 @@ Change a block on the board from one type and color to another. This will post a
 
 
 ### emthree.create_block(board, x, y, type, color)
-Create a new block on the board. This will call the `create_block_fn` passed to the `emthree.create_board()` function.
+Create a new block on the board. This will call the `on_create_block` function passed to the `emthree.on_create_block()` function.
 
 **PARAMETERS**
 * ```board``` (table) - The board to create block on
@@ -173,7 +172,33 @@ Create a new block on the board. This will call the `create_block_fn` passed to 
 * ```block``` (table) - The created block
 
 
+### emthree.fill_board(board)
+Fill the board with blocks. This will call the `on_create_block` function passed to the `emthree.on_create_block()` function.
+
+**PARAMETERS**
+* ```board``` (table) - The board to fill with blocks
+
+
 ## EmthreeAPI - Callbacks
+
+### emthree.on_create_block(board, fn)
+Set a function to be called whenever a block is to be created on the board. The function is expected to spawn a game object and return the game object id.
+
+**PARAMETERS**
+* ```board``` (table) - The board that will notify when a new block needs to be created
+* ```fn``` (function) - The function to call when a block should be created
+
+The function must accept and return the following:
+
+**PARAMETERS**
+* ```board``` (table) - The board where the match was detected
+* ```position``` (vector3) - Position of the block to create
+* ```type``` (any) - The block type, can be nil
+* ```color``` (any) - The color of the block
+
+**RETURN**
+* ```id``` (hash) - Id of the created game object
+
 
 ### emthree.on_match(board, fn)
 Set a function to be called whenever a match on the board is detected. Use this callback to remove the blocks involved in the match and optionally also create new blocks based on the match. The default implementation will remove the blocks and do nothing else.
