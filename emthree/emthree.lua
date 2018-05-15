@@ -266,7 +266,7 @@ end
 function M.fill_board(board)
 	for x = 0, board.width - 1 do
 		for y = 0, board.height - 1 do
-			if not self.board.slots[x][y] then
+			if not board.slots[x][y] then
 				M.create_block(board, x, y)
 			end
 		end
@@ -524,7 +524,7 @@ function M.stabilize(board, callback)
 			async(function(done) fill_empty_slots(board, empty_slots, done) end)
 		end
 	end
-	
+
 	if not coroutine.running() then
 		utils.corun(fn)
 	else
