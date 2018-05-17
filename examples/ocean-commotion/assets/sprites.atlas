@@ -1,0 +1,108 @@
+images {
+  image: "/examples/ocean-commotion/assets/fish/eyes-blue.png"
+}
+images {
+  image: "/examples/ocean-commotion/assets/fish/eyes-green.png"
+}
+images {
+  image: "/examples/ocean-commotion/assets/fish/eyes-orange.png"
+}
+images {
+  image: "/examples/ocean-commotion/assets/fish/eyes-purple.png"
+}
+images {
+  image: "/examples/ocean-commotion/assets/fish/eyes-red.png"
+}
+images {
+  image: "/examples/ocean-commotion/assets/fish/eyes-starfish.png"
+}
+images {
+  image: "/examples/ocean-commotion/assets/fish/eyes-yellow.png"
+}
+images {
+  image: "/examples/ocean-commotion/assets/fish/fish-blue-h.png"
+}
+images {
+  image: "/examples/ocean-commotion/assets/fish/fish-blue-v.png"
+}
+images {
+  image: "/examples/ocean-commotion/assets/fish/fish-blue-w.png"
+}
+images {
+  image: "/examples/ocean-commotion/assets/fish/fish-blue.png"
+}
+images {
+  image: "/examples/ocean-commotion/assets/fish/fish-green-h.png"
+}
+images {
+  image: "/examples/ocean-commotion/assets/fish/fish-green-v.png"
+}
+images {
+  image: "/examples/ocean-commotion/assets/fish/fish-green-w.png"
+}
+images {
+  image: "/examples/ocean-commotion/assets/fish/fish-green.png"
+}
+images {
+  image: "/examples/ocean-commotion/assets/fish/fish-orange-h.png"
+}
+images {
+  image: "/examples/ocean-commotion/assets/fish/fish-orange-v.png"
+}
+images {
+  image: "/examples/ocean-commotion/assets/fish/fish-orange-w.png"
+}
+images {
+  image: "/examples/ocean-commotion/assets/fish/fish-orange.png"
+}
+images {
+  image: "/examples/ocean-commotion/assets/fish/fish-purple-h.png"
+}
+images {
+  image: "/examples/ocean-commotion/assets/fish/fish-purple-v.png"
+}
+images {
+  image: "/examples/ocean-commotion/assets/fish/fish-purple-w.png"
+}
+images {
+  image: "/examples/ocean-commotion/assets/fish/fish-purple.png"
+}
+images {
+  image: "/examples/ocean-commotion/assets/fish/fish-red-h.png"
+}
+images {
+  image: "/examples/ocean-commotion/assets/fish/fish-red-v.png"
+}
+images {
+  image: "/examples/ocean-commotion/assets/fish/fish-red-w.png"
+}
+images {
+  image: "/examples/ocean-commotion/assets/fish/fish-red.png"
+}
+images {
+  image: "/examples/ocean-commotion/assets/fish/fish-starfish.png"
+}
+images {
+  image: "/examples/ocean-commotion/assets/fish/fish-yellow-h.png"
+}
+images {
+  image: "/examples/ocean-commotion/assets/fish/fish-yellow-v.png"
+}
+images {
+  image: "/examples/ocean-commotion/assets/fish/fish-yellow-w.png"
+}
+images {
+  image: "/examples/ocean-commotion/assets/fish/fish-yellow.png"
+}
+images {
+  image: "/examples/ocean-commotion/assets/effects/bubble.png"
+}
+images {
+  image: "/examples/ocean-commotion/assets/effects/white_dot.png"
+}
+images {
+  image: "/examples/ocean-commotion/assets/effects/white_dot2.png"
+}
+margin: 0
+extrude_borders: 2
+inner_padding: 0

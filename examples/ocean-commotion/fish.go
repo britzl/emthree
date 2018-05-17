@@ -1,6 +1,6 @@
 components {
   id: "explosion"
-  component: "/def-ocean-commotion/explode.particlefx"
+  component: "/examples/ocean-commotion/assets/explode.particlefx"
   position {
     x: 0.0
     y: 0.0
@@ -31,7 +31,7 @@ components {
 embedded_components {
   id: "sprite"
   type: "sprite"
-  data: "tile_set: \"/def-ocean-commotion/sprites.atlas\"\n"
+  data: "tile_set: \"/examples/ocean-commotion/assets/sprites.atlas\"\n"
   "default_animation: \"fish-blue\"\n"
   "material: \"/builtins/materials/sprite.material\"\n"
   "blend_mode: BLEND_MODE_ALPHA\n"
@@ -51,7 +51,7 @@ embedded_components {
 embedded_components {
   id: "sprite-eyes"
   type: "sprite"
-  data: "tile_set: \"/def-ocean-commotion/sprites.atlas\"\n"
+  data: "tile_set: \"/examples/ocean-commotion/assets/sprites.atlas\"\n"
   "default_animation: \"eyes-blue\"\n"
   "material: \"/builtins/materials/sprite.material\"\n"
   "blend_mode: BLEND_MODE_ALPHA\n"

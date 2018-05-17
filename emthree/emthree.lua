@@ -9,6 +9,11 @@ M.SELECT = hash("emthree_select")
 M.RESET = hash("emthree_reset")
 
 
+
+local function delay(seconds, fn)
+	go.animate("/timer#timer", "timer", go.PLAYBACK_ONCE_FORWARD, 0, go.EASING_LINEAR, seconds, 0, fn)
+end
+
 --
 -- Returns a list of neighbor slots of the same color as
 -- the one on x, y. Horizontally.
@@ -142,7 +147,7 @@ local function remove_matching_neighbors(board, callback)
 		end
 	end
 
-	timer.seconds(duration, callback)
+	delay(duration, callback)
 end
 
 
@@ -193,7 +198,7 @@ local function collapse(board, callback)
 		end
 	end
 
-	timer.seconds(duration, callback)
+	delay(duration, callback)
 end
 
 
@@ -294,7 +299,7 @@ local function swap(board, slot1, slot2, callback)
 	block1.x, block2.x = block2.x, block1.x
 	block1.y, block2.y = block2.y, block1.y
 
-	timer.seconds(duration, callback)
+	delay(duration, callback)
 end
 
 ---
@@ -495,7 +500,7 @@ local function fill_empty_slots(board, empty_slots, callback)
 		go.animate(block.id, "position.y", go.PLAYBACK_ONCE_FORWARD, position.y, go.EASING_OUTBOUNCE, duration)
 	end
 
-	timer.seconds(duration, callback)
+	delay(duration, callback)
 end
 
 --- Stabilize the board
