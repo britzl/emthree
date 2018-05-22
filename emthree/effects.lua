@@ -13,10 +13,10 @@ function M.horisontal_lineblast(board, block, width)
 		if emthree.on_board(board, block.x, y) then
 			emthree.remove_block(board, board.slots[block.x][y])
 			for x=block.x, 0, -1 do
-				emthree.remove_block(board, board.slots[x][y])
+				if emthree.is_block(board, x, y) then emthree.remove_block(board, board.slots[x][y]) end
 			end
 			for x=block.x, board.width -1 do
-				emthree.remove_block(board, board.slots[x][y])
+				if emthree.is_block(board, x, y) then emthree.remove_block(board, board.slots[x][y]) end
 			end
 		end
 	end
@@ -32,10 +32,10 @@ function M.vertical_lineblast(board, block, width)
 		if emthree.on_board(board, x, block.y) then
 			emthree.remove_block(board, board.slots[x][block.y])
 			for y=block.y, 0, -1 do
-				emthree.remove_block(board, board.slots[x][y])
+				if emthree.is_block(board, x, y) then emthree.remove_block(board, board.slots[x][y]) end
 			end
 			for y=block.y, board.height -1 do
-				emthree.remove_block(board, board.slots[x][y])
+				if emthree.is_block(board, x, y) then emthree.remove_block(board, board.slots[x][y]) end
 			end
 		end
 	end
@@ -49,7 +49,7 @@ function M.bomb(board, block, radius)
 	for r=1,radius do
 		for x=block.x-r,block.x+r do
 			for y=block.y-r,block.y+r do
-				if emthree.on_board(board, x, y) then
+				if emthree.is_block(board, x, y) then
 					emthree.remove_block(board, board.slots[x][y])
 				end
 			end
@@ -74,7 +74,9 @@ function M.remove_all(board)
 	local blocks = emthree.get_blocks(board)
 	while #blocks > 0 do
 		local b = table.remove(blocks, math.random(1, #blocks))
-		emthree.remove_block(board, b)
+		if emthree.is_block(board, b.x, b.y) then 
+			emthree.remove_block(board, b)
+		end
 	end
 end
 

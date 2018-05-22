@@ -3,7 +3,7 @@ local effects = require "emthree.effects"
 
 local blocksize = 80		-- Distance between block centers
 local boardwidth = 6		-- Number of columns
-local boardheight = 9		-- Number of rows
+local boardheight = 10		-- Number of rows
 
 local colors = {
 	hash("brickBlue06"),
@@ -26,9 +26,14 @@ end
 function init(self)
 	self.board = emthree.create_board(boardwidth, boardheight, blocksize)
 	emthree.on_create_block(self.board, create_block)
+	for x=0,boardwidth-1 do
+		emthree.create_spawner(self.board, x, boardheight - 1, "SPAWNER")
+	end
 	emthree.fill_board(self.board)
+	--print(emthree.dump(self.board))
 	emthree.stabilize(self.board, function()
 		msg.post(".", "acquire_input_focus")
+		--print(emthree.dump(self.board))
 	end)
 end
 

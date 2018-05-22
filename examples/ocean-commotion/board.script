@@ -163,6 +163,9 @@ function init(self)
 	emthree.on_swap(self.board, on_swap)
 
 	-- start the board
+	for x=0,boardwidth-1 do
+		emthree.create_spawner(self.board, x, boardheight - 1, "SPAWNER")
+	end
 	emthree.fill_board(self.board)
 	emthree.stabilize(self.board, function()
 		msg.post(".", "acquire_input_focus")

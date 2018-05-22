@@ -1,4 +1,4 @@
-name: "main"
+name: "oceancommotion"
 instances {
   id: "timer"
   prototype: "/emthree/timer.go"
@@ -114,7 +114,7 @@ embedded_instances {
   "blend_mode: BLEND_MODE_ALPHA\\n"
   "line_break: false\\n"
   "text: \\\"Ocean Commotion\\\"\\n"
-  "font: \\\"/def-ocean-commotion/font/text.font\\\"\\n"
+  "font: \\\"/examples/ocean-commotion/assets/font/text.font\\\"\\n"
   "material: \\\"/builtins/fonts/label.material\\\"\\n"
   "\"\n"
   "  position {\n"

@@ -4,7 +4,7 @@ version = 0.1
 dependencies = 
 
 [bootstrap]
-main_collection = /examples/basic/basic.collectionc
+main_collection = /examples/examples.collectionc
 
 [input]
 game_binding = /input/game.input_bindingc

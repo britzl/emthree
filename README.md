@@ -41,9 +41,15 @@ A position on the board. A slot can hold a block.
 ![](images/slot.png)
 
 ### Block
-A block represents an element in a slot on the board. It could be fish, candy, cakes or something else, fitting the theme of the game. Blocks have a color and an optional type.
+A block represents an element in a slot on the board. It could be fish, candy, cakes or something else, fitting the theme of the game. Blocks will fall if there are free slots below them. Blocks have a color and an optional type.
 
 ![](images/block.png)
+
+### Blocker
+A blocker represents an element in a slot on the board that is static. It will not fall and it will stop blocks from falling any further. Blocks have an optional type.
+
+### Spawner
+A spawner represents an element in a slot on the board that creates/spawns blocks. It will not fall and it will stop blocks from falling any further. Spawners have an optional type.
 
 ### Match
 Three or more blocks of the same color is considered a match.
@@ -84,16 +90,17 @@ Pass user input to the board to detect interaction with the blocks. Only touch/c
 * ```action``` (table) - The action table received from the engine lifecycle function on_input. Only pass on touch/click events where `pressed` or `released` is true.
 
 
-## EmthreeAPI - Block access
+## EmthreeAPI - Slot access
 
-### emthreee.iterate_slots(board)
-Return an iterator function that can be used to iterate all slots on the board
+### emthreee.iterate_blocks(board, filter_fn)
+Return an iterator function that can be used to iterate all blocks on the board. The blocks can optionally be filtered by the iterator to only return blocks that match certain criteria
 
 **PARAMETERS**
 * ```board``` (table) - The board to iterate
+* ```filter_fn``` (function) - A function that can be used to filter blocks. The function will receive the board, x and y position as arguments and must return true or false depending on if the block at that position should be returned or not.
 
 **RETURN**
-* ```fn``` (function) - The iterator function. The function will return a slot.
+* ```fn``` (function) - The iterator function. The function will return a block.
 
 
 ### emthree.get_blocks(board, color)
@@ -131,6 +138,54 @@ Check if a position is on the board
 * ```on_board``` (boolean) - True if the position is on the board
 
 
+### emthree.is_block(board, x, y)
+Check if the content of a slot is a block
+
+**PARAMETERS**
+* ```board``` (table) - The board to check
+* ```x``` (number) - Horizontal position
+* ```y``` (number) - Vertical position
+
+**RETURN**
+* ```result``` (boolean) - True if there is a block in the slot
+
+
+### emthree.is_blocker(board, x, y)
+Check if the content of a slot is a blocker
+
+**PARAMETERS**
+* ```board``` (table) - The board to check
+* ```x``` (number) - Horizontal position
+* ```y``` (number) - Vertical position
+
+**RETURN**
+* ```result``` (boolean) - True if there is a blocker in the slot
+
+
+### emthree.is_spawner(board, x, y)
+Check if the content of a slot is a spawner
+
+**PARAMETERS**
+* ```board``` (table) - The board to check
+* ```x``` (number) - Horizontal position
+* ```y``` (number) - Vertical position
+
+**RETURN**
+* ```result``` (boolean) - True if there is a spawner in the slot
+
+
+### emthree.is_empty(board, x, y)
+Check if a slot is empty
+
+**PARAMETERS**
+* ```board``` (table) - The board to check
+* ```x``` (number) - Horizontal position
+* ```y``` (number) - Vertical position
+
+**RETURN**
+* ```result``` (boolean) - True if the slot is empty
+
+
 ## EmthreeAPI - Remove, change and create blocks
 
 ### emthree.remove_block(board, block)
@@ -159,7 +214,7 @@ Change a block on the board from one type and color to another. This will post a
 
 
 ### emthree.create_block(board, x, y, type, color)
-Create a new block on the board. This will call the `on_create_block` function passed to the `emthree.on_create_block()` function.
+Create a new block on the board. This will call the function passed to `emthree.on_create_block()`.
 
 **PARAMETERS**
 * ```board``` (table) - The board to create block on
@@ -172,8 +227,34 @@ Create a new block on the board. This will call the `on_create_block` function p
 * ```block``` (table) - The created block
 
 
+### emthree.create_blocker(board, x, y, type)
+Create a new blocker on the board. This will call the function passed to `emthree.on_create_blocker()``
+
+**PARAMETERS**
+* ```board``` (table) - The board to create blocker on
+* ```x``` (number) - The horizontal slot position of the blocker
+* ```y``` (number) - The vertical slot position of the blocker
+* ```type``` (any) - The type of the blocker
+
+**RETURN**
+* ```blocker``` (table) - The created blocker
+
+
+### emthree.create_spawner(board, x, y, type)
+Create a new spawner on the board. This will call the function passed to `emthree.on_create_spawner()``
+
+**PARAMETERS**
+* ```board``` (table) - The board to create spawner on
+* ```x``` (number) - The horizontal slot position of the spawner
+* ```y``` (number) - The vertical slot position of the spawner
+* ```type``` (any) - The type of the spawner
+
+**RETURN**
+* ```blocker``` (table) - The created spawner
+
+
 ### emthree.fill_board(board)
-Fill the board with blocks. This will call the `on_create_block` function passed to the `emthree.on_create_block()` function.
+Fill the board with blocks. This will call the function passed to `emthree.on_create_block()`.
 
 **PARAMETERS**
 * ```board``` (table) - The board to fill with blocks
@@ -191,13 +272,53 @@ Set a function to be called whenever a block is to be created on the board. The 
 The function must accept and return the following:
 
 **PARAMETERS**
-* ```board``` (table) - The board where the match was detected
+* ```board``` (table) - The board where the block should be created
 * ```position``` (vector3) - Position of the block to create
 * ```type``` (any) - The block type, can be nil
 * ```color``` (any) - The color of the block
 
 **RETURN**
 * ```id``` (hash) - Id of the created game object
+* ```type``` (any) - Type of the created block
+* ```color``` (any) - Color of the created block
+
+
+### emthree.on_create_blocker(board, fn)
+Set a function to be called whenever a blocker is to be created on the board. The function is expected to spawn a game object and return the game object id.
+
+**PARAMETERS**
+* ```board``` (table) - The board that will notify when a new blocker needs to be created
+* ```fn``` (function) - The function to call when a blocker should be created
+
+The function must accept and return the following:
+
+**PARAMETERS**
+* ```board``` (table) - The board where the blocker should be created
+* ```position``` (vector3) - Position of the blocker to create
+* ```type``` (any) - The blocker type, can be nil
+
+**RETURN**
+* ```id``` (hash) - Id of the created game object
+* ```type``` (any) - Type of the created blocker
+
+
+### emthree.on_create_spawner(board, fn)
+Set a function to be called whenever a spawner is to be created on the board. The function is expected to spawn a game object and return the game object id.
+
+**PARAMETERS**
+* ```board``` (table) - The board that will notify when a new spawner needs to be created
+* ```fn``` (function) - The function to call when a spawner should be created
+
+The function must accept and return the following:
+
+**PARAMETERS**
+* ```board``` (table) - The board where the spawner should be created
+* ```position``` (vector3) - Position of the spawner to create
+* ```type``` (any) - The spawner type, can be nil
+
+**RETURN**
+* ```id``` (hash) - Id of the created game object
+* ```type``` (any) - Type of the created spawner
 
 
 ### emthree.on_match(board, fn)

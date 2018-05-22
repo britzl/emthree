@@ -9,10 +9,34 @@ M.SELECT = hash("emthree_select")
 M.RESET = hash("emthree_reset")
 
 
-
-local function delay(seconds, fn)
-	go.animate("/timer#timer", "timer", go.PLAYBACK_ONCE_FORWARD, 0, go.EASING_LINEAR, seconds, 0, fn)
+local function spawner_filter(board, x, y)
+	local block = board.slots[x][y]
+	return block and block.spawner
 end
+
+
+local function create_color_filter(color)
+	return function(board, x, y)
+		local block = board.slots[x][y]
+		return (not color and block) or (color and block and block.color == color)
+	end
+end
+
+
+local function delay(seconds, fn, a)
+	go.animate("/timer#timer", "timer", go.PLAYBACK_ONCE_FORWARD, 0, go.EASING_LINEAR, seconds, 0, function()
+		fn(a)
+	end)
+end
+
+
+local function fall_block(board, block, duration)
+	local position = go.get_position(block.id)
+	local height = (board.height * board.block_size)
+	go.set_position(vmath.vector3(position.x, height, position.z), block.id)
+	go.animate(block.id, "position.y", go.PLAYBACK_ONCE_FORWARD, position.y, go.EASING_OUTBOUNCE, duration)
+end
+
 
 --
 -- Returns a list of neighbor slots of the same color as
@@ -110,7 +134,7 @@ end
 --
 local function find_matching_neighbors(board)
 	assert(board, "You must provide a board")
-	for block in M.iterate_slots(board) do
+	for block in M.iterate_blocks(board) do
 		--
 		-- Count the same type line of neighbors horisontally and
 		-- vertically. Note that any number of subsequent neighbors
@@ -134,14 +158,14 @@ local function remove_matching_neighbors(board, callback)
 	local duration = 0.3
 
 	-- handle t, l and cross shaped block formations in a first pass
-	for block in M.iterate_slots(board) do
+	for block in M.iterate_blocks(board) do
 		if #block.horisontal_neighbors >= 2 and #block.vertical_neighbors >= 2 then
 			board.on_match(board, block, block.horisontal_neighbors, block.vertical_neighbors)
 		end
 	end
 
 	-- handle horisontal and vertical
-	for block in M.iterate_slots(board) do
+	for block in M.iterate_blocks(board) do
 		if #block.horisontal_neighbors >= 2 or #block.vertical_neighbors >= 2 then
 			board.on_match(board, block, block.horisontal_neighbors, block.vertical_neighbors)
 		end
@@ -167,6 +191,7 @@ local function collapse(board, callback)
 	-- Avoid some garbage creation by reusing these locals
 	-- through the loops
 	--
+	local collapsed = false
 	local blocks = board.slots
 	local dy = 0
 	local pos = vmath.vector3()
@@ -176,18 +201,24 @@ local function collapse(board, callback)
 		--
 		dy = 0
 		for y = 0,board.height - 1 do
-			if blocks[x][y] then
+			local block = blocks[x][y]
+			if block and block.blocker then
+				dy = 0
+			elseif block and block.spawner then
+				-- do nothing
+			elseif block then
 				if dy > 0 then
 					--
 					-- Move down dy steps
 					--
-					blocks[x][y - dy] = blocks[x][y]
+					blocks[x][y - dy] = block
 					blocks[x][y] = nil
 					--
 					-- Calc new position and animate
 					---
-					blocks[x][y - dy].y = blocks[x][y - dy].y - dy
-					go.animate(blocks[x][y-dy].id, "position.y", go.PLAYBACK_ONCE_FORWARD, board.block_size / 2 + board.block_size * (y - dy), go.EASING_OUTBOUNCE, duration)
+					block.y = block.y - dy
+					go.animate(block.id, "position.y", go.PLAYBACK_ONCE_FORWARD, board.block_size / 2 + board.block_size * (y - dy), go.EASING_OUTBOUNCE, duration)
+					collapsed = true
 				end
 			else
 				--
@@ -198,7 +229,11 @@ local function collapse(board, callback)
 		end
 	end
 
-	delay(duration, callback)
+	if collapsed then
+		delay(duration, callback)
+	else
+		callback()
+	end
 end
 
 
@@ -260,7 +295,15 @@ function M.create_board(width, height, block_size, config)
 	end)
 
 	M.on_create_block(board, function(board, x, y, type, color)
-		error("You must call emthree.on_create_block() and provide a function to spawn blocks on the board")
+		error("You must call emthree.on_create_block() and provide a function to create blocks on the board")
+	end)
+
+	M.on_create_blocker(board, function(board, x, y, type)
+		return nil, type
+	end)
+
+	M.on_create_spawner(board, function(board, x, y, type)
+		return nil, type
 	end)
 	return board
 end
@@ -277,9 +320,6 @@ function M.fill_board(board)
 		end
 	end
 end
-
-
-
 
 
 local function swap(board, slot1, slot2, callback)
@@ -301,6 +341,7 @@ local function swap(board, slot1, slot2, callback)
 
 	delay(duration, callback)
 end
+
 
 ---
 -- Swap the contents of two board slots
@@ -326,12 +367,14 @@ local function swap_slots(board, slot1, slot2)
 	M.stabilize(board)
 end
 
+
 --
 -- Return an iterator function for use in generic for loops
--- to iterate all slots on the board
+-- to iterate all blocks on the board
 -- @param board
+-- @param filter_fn Optional filter function (args: board, x, y)
 -- @return Function iterator
-function M.iterate_slots(board)
+function M.iterate_blocks(board, filter_fn)
 	assert(board, "You must provide a board")
 	local x = 0
 	local y = -1
@@ -346,9 +389,71 @@ function M.iterate_slots(board)
 				y = 0
 				x = x + 1
 			end
-		until board.slots[x][y]
+			local block = board.slots[x][y]
+		until (filter_fn and filter_fn(board, x, y) and block) or (not filter_fn and block)
 		return board.slots[x][y]
 	end
+end
+
+
+--- Check if a slot is empty
+-- @param board
+-- @param x
+-- @param y
+-- @return true if the slot is empty
+function M.is_empty(board, x, y)
+	assert(board, "You must provide a board")
+	assert(x and y, "You must provide a position")
+	if M.on_board(board, x, y) then
+		return board.slots[x][y] == nil
+	end
+	return false
+end
+
+
+--- Check if the content of a slot is a block
+-- @param board
+-- @param x
+-- @param y
+-- @return true if there is a block in the slot
+function M.is_block(board, x, y)
+	assert(board, "You must provide a board")
+	assert(x and y, "You must provide a position")
+	if M.on_board(board, x, y) then
+		return board.slots[x][y] and board.slots[x][y].block
+	end
+	return false
+end
+
+
+--- Check if the content of a slot is a blocker
+-- @param board
+-- @param x
+-- @param y
+-- @return true if there is a blocker in the slot
+function M.is_blocker(board, x, y)
+	assert(board, "You must provide a board")
+	assert(x and y, "You must provide a position")
+	if M.on_board(board, x, y) then
+		return board.slots[x][y] and board.slots[x][y].blocker
+	end
+	return false
+end
+
+
+
+--- Check if the content of a slot is a spawner
+-- @param board
+-- @param x
+-- @param y
+-- @return true if there is a spawner in the slot
+function M.is_spawner(board, x, y)
+	assert(board, "You must provide a board")
+	assert(x and y, "You must provide a position")
+	if M.on_board(board, x, y) then
+		return board.slots[x][y] and board.slots[x][y].spawner
+	end
+	return false
 end
 
 
@@ -366,6 +471,7 @@ function M.get_block(board, x, y)
 	return nil
 end
 
+
 ---
 -- Get all blocks of a specific color
 -- @param board
@@ -374,10 +480,8 @@ end
 function M.get_blocks(board, color)
 	assert(board, "You must provide a board")
 	local blocks = {}
-	for block in M.iterate_slots(board) do
-		if not color or block.color == color then
-			table.insert(blocks, block)
-		end
+	for block in M.iterate_blocks(board, create_color_filter(color)) do
+		table.insert(blocks, block)
 	end
 	return blocks
 end
@@ -444,19 +548,59 @@ end
 
 
 --- Create a new block on the board. This will call the function that was provided
---. when the board was created
+-- by on_create_block()
 -- @param board
 -- @param x
 -- @param y
 -- @param type
 -- @param color
+-- @return The created block
 function M.create_block(board, x, y, type, color)
 	assert(board, "You must provide a board")
 	assert(x and y, "You must provide a position")
-
+	assert(not board.slots[x][y], "The position is not empty")
+	
 	local sx, sy = M.slot_to_screen(board, x, y)
 	local id, color, type = board.on_create_block(vmath.vector3(sx, sy, 0), type, color)
-	board.slots[x][y] = { id = id, x = x, y = y, color = color, type = type }
+	board.slots[x][y] = { id = id, x = x, y = y, color = color, type = type, block = true }
+	return board.slots[x][y]
+end
+
+
+--- Create a new blocker on the board. This will call the function that was provided
+-- by on_create_blocker()
+-- @param board
+-- @param x
+-- @param y
+-- @param type
+-- @return The created blocker
+function M.create_blocker(board, x, y, type)
+	assert(board, "You must provide a board")
+	assert(x and y, "You must provide a position")
+	assert(not board.slots[x][y], "The position is not empty")
+
+	local sx, sy = M.slot_to_screen(board, x, y)
+	local id, type = board.on_create_blocker(vmath.vector3(sx, sy, 0), type)
+	board.slots[x][y] = { id = id, x = x, y = y, type = type, blocker = true }
+	return board.slots[x][y]
+end
+
+
+--- Create a new spawner on the board. This will call the function that was provided
+-- by on_create_spawner()
+-- @param board
+-- @param x
+-- @param y
+-- @param type
+-- @return The created spawner
+function M.create_spawner(board, x, y, type)
+	assert(board, "You must provide a board")
+	assert(x and y, "You must provide a position")
+	assert(not board.slots[x][y], "The position is not empty")
+
+	local sx, sy = M.slot_to_screen(board, x, y)
+	local id, type = board.on_create_spawner(vmath.vector3(sx, sy, 0), type)
+	board.slots[x][y] = { id = id, x = x, y = y, type = type, spawner = true }
 	return board.slots[x][y]
 end
 
@@ -466,7 +610,7 @@ end
 --
 local function find_empty_slots(board)
 	assert(board, "You must provide a board")
-	local slots = {}
+	local slots = {}	
 	for x = 0, board.width - 1 do
 		for y = 0, board.height - 1 do
 			if not board.slots[x][y] then
@@ -481,6 +625,7 @@ local function find_empty_slots(board)
 	return slots
 end
 
+
 --
 -- Drop spawned blocks on the board. Target the supplied slots.
 -- When done, call callback.
@@ -492,16 +637,58 @@ local function fill_empty_slots(board, empty_slots, callback)
 	-- Go through the list of empty slots and drop a block
 	-- game object into its position.
 	--
-	local offset = vmath.vector3(0, 1000, 0)
 	for i, s in pairs(empty_slots) do
-		local block = M.create_block(board, s.x, s.y)
-		local position = go.get_position(block.id)
-		go.set_position(vmath.vector3(position.x, 1000, position.z), block.id)
-		go.animate(block.id, "position.y", go.PLAYBACK_ONCE_FORWARD, position.y, go.EASING_OUTBOUNCE, duration)
+		fall_block(board, M.create_block(board, s.x, s.y), duration)
 	end
 
 	delay(duration, callback)
 end
+
+
+--
+-- Find and return any slots containing spawners
+--
+local function find_spawners(board)
+	assert(board, "You must provide a board")
+	local spawners = {}
+	for block in M.iterate_blocks(board, spawner_filter) do
+		table.insert(spawners, { x = block.x, y = block.y })
+	end
+	return spawners
+end
+
+
+
+local function trigger_spawners(board, callback)
+	assert(board, "You must provide a board")
+	local duration = 0.3
+
+	local triggered = false
+	for _,spawner in pairs(find_spawners(board)) do
+		-- find the nearest block from the spawner
+		local start_y = 0
+		for y=spawner.y - 1, 0, -1 do
+			local block = board.slots[spawner.x][y]
+			if block then
+				start_y = y + 1
+				break
+			end
+		end
+		if start_y <= spawner.y - 1 then
+			triggered = true
+			for y=start_y, spawner.y - 1 do
+				fall_block(board, M.create_block(board, spawner.x, y), duration)
+			end
+		end
+	end
+
+	if triggered then
+		delay(duration, callback, triggered)
+	else
+		callback(triggered)
+	end
+end
+
 
 --- Stabilize the board
 -- This will find and remove matching blocks and spawn new blocks in their
@@ -519,14 +706,22 @@ function M.stabilize(board, callback)
 			end)
 			async(function(done) collapse(board, done) end)
 
+			local triggered = async(function(done) trigger_spawners(board, done) end)
+			if not triggered then
+				board.on_stabilized(board)
+				if callback then callback() end
+				break
+			end
+			
 			-- Find empty slots, exit if all slots are full
-			local empty_slots = find_empty_slots(board)
+			--[[local empty_slots = find_empty_slots(board)
+			print(#empty_slots)
 			if #empty_slots == 0 then
 				board.on_stabilized(board)
 				if callback then callback() end
 				break
 			end
-			async(function(done) fill_empty_slots(board, empty_slots, done) end)
+			async(function(done) fill_empty_slots(board, empty_slots, done) end)--]]
 		end
 	end
 
@@ -656,11 +851,11 @@ end
 
 function M.color_frequency(board)
 	local f = {}
-	for block in M.iterate_slots(board) do
+	for block in M.iterate_blocks(board) do
 		if block.color then
 			f[block.color] = f[block.color] or 0
+			f[block.color] = f[block.color] + 1
 		end
-		f[block.color] = f[block.color] + 1
 	end
 	local l = {}
 	for color,count in pairs(f) do
@@ -674,13 +869,19 @@ end
 
 
 function M.dump(board)
-	local s = ""
-	for y = 0, board.height - 1 do
+	local s = "\n"
+	for y = board.height - 1,0,-1  do
 		s = s .. y .. ":"
 		for x = 0, board.width - 1 do
 			local block = board.slots[x][y]
 			if block then
-				s = s ..  "O"
+				if block.spawner then
+					s = s ..  "U"
+				elseif block.blocker then
+					s = s ..  "X"
+				else
+					s = s ..  "O"
+				end
 			else
 				s = s ..  " "
 			end
@@ -728,6 +929,22 @@ function M.on_create_block(board, fn)
 	assert(board, "You must provide a board")
 	assert(fn, "You must provide a function")
 	board.on_create_block = fn
+end
+
+
+-- The function to call when a blocker should be created
+function M.on_create_blocker(board, fn)
+	assert(board, "You must provide a board")
+	assert(fn, "You must provide a function")
+	board.on_create_blocker = fn
+end
+
+
+-- The function to call when a spawner should be created
+function M.on_create_spawner(board, fn)
+	assert(board, "You must provide a board")
+	assert(fn, "You must provide a function")
+	board.on_create_spawner = fn
 end
 
 
