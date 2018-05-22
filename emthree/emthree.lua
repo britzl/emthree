@@ -1,7 +1,7 @@
 local M = {}
 
-local async = require "emthree.async"
-local utils = require "emthree.utils"
+local async = require "emthree.internal.async"
+local utils = require "emthree.internal.utils"
 
 M.REMOVE = hash("emthree_remove")
 M.CHANGE = hash("emthree_change")
@@ -24,7 +24,7 @@ end
 
 
 local function delay(seconds, fn, a)
-	go.animate("/timer#timer", "timer", go.PLAYBACK_ONCE_FORWARD, 0, go.EASING_LINEAR, seconds, 0, function()
+	go.animate(".", "position.z", go.PLAYBACK_ONCE_FORWARD, go.get_position().z, go.EASING_LINEAR, seconds, 0, function()
 		fn(a)
 	end)
 end
