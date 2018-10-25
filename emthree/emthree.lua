@@ -827,9 +827,10 @@ end
 function M.screen_to_slot(board, x, y)
 	assert(board, "You must provide a board")
 	assert(x and y, "You must provide a position")
-	local pos = go.get_position()
-	local x = math.floor((x - pos.x) / board.block_size)
-	local y = math.floor((y - pos.y) / board.block_size)
+	local pos = go.get_world_position()
+	local scale = go.get_world_scale()
+	local x = math.floor((x - pos.x) / (board.block_size * scale.x))
+	local y = math.floor((y - pos.y) / (board.block_size * scale.y))
 	return x, y
 end
 
