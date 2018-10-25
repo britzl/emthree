@@ -62,7 +62,7 @@ A board is considered stable when the board doesn't contain any matches and all 
 
 ## EmthreeAPI - The basics
 
-### emthree.create(width, height, block_size)
+### emthree.create_board(width, height, block_size)
 Create an Emthree board of the specified dimensions
 
 **PARAMETERS**
