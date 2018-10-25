@@ -24,7 +24,7 @@ end
 
 
 local function delay(seconds, fn, a)
-	go.animate(".", "position.z", go.PLAYBACK_ONCE_FORWARD, go.get_position().z, go.EASING_LINEAR, seconds, 0, function()
+	timer.delay(seconds, false, function()
 		fn(a)
 	end)
 end
