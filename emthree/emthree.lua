@@ -30,11 +30,11 @@ local function delay(seconds, fn, a)
 end
 
 
-local function fall_block(board, block, duration)
+local function slide_block(board, block, duration)
 	local position = go.get_position(block.id)
 	local height = (board.height * board.block_size)
 	go.set_position(vmath.vector3(position.x, height, position.z), block.id)
-	go.animate(block.id, "position.y", go.PLAYBACK_ONCE_FORWARD, position.y, go.EASING_OUTBOUNCE, duration)
+	go.animate(block.id, "position.y", go.PLAYBACK_ONCE_FORWARD, position.y, board.config.slide_easing, duration)
 end
 
 
@@ -193,38 +193,42 @@ local function collapse(board, callback)
 	--
 	local collapsed = false
 	local blocks = board.slots
-	local dy = 0
-	local pos = vmath.vector3()
+	local empty_x = nil
+	local empty_y = nil
+	local block_size = board.block_size
 	for x = 0,board.width - 1 do
-		--
-		-- Reset the drop down distance for each column
-		--
-		dy = 0
+		empty_x = nil
+		empty_y = nil
 		for y = 0,board.height - 1 do
 			local block = blocks[x][y]
 			if block and block.blocker then
-				dy = 0
+				empty_x = nil
+				empty_y = nil
 			elseif block and block.spawner then
 				-- do nothing
 			elseif block then
-				if dy > 0 then
+				if empty_x and empty_y then
 					--
-					-- Move down dy steps
+					-- Move to empty slot
 					--
-					blocks[x][y - dy] = block
+					blocks[empty_x][empty_y] = block
 					blocks[x][y] = nil
+					block.x = empty_x
+					block.y = empty_y
+
 					--
 					-- Calc new position and animate
 					---
-					block.y = block.y - dy
-					go.animate(block.id, "position.y", go.PLAYBACK_ONCE_FORWARD, board.block_size / 2 + board.block_size * (y - dy), go.EASING_OUTBOUNCE, duration)
+					local to = vmath.vector3((block_size / 2) + (block_size * empty_x), (block_size / 2) + (block_size * empty_y), 0)
+					go.animate(block.id, "position", go.PLAYBACK_ONCE_FORWARD, to, board.config.slide_easing, duration)
 					collapsed = true
+					empty_x = empty_x
+					empty_y = empty_y + 1
 				end
-			else
-				--
-				-- Empty slot - increase the distance to move
-				--
-				dy = dy + 1
+			-- first empty slot
+			elseif not empty_x then
+				empty_x = x
+				empty_y = y
 			end
 		end
 	end
@@ -260,6 +264,8 @@ function M.create_board(width, height, block_size, config)
 	assert(block_size, "You must provide a block size")
 	config = config or {}
 	config.collapse_duration = config.collapse_duration or 0.2
+	config.slide_easing = config.slide_easing or go.EASING_OUTBOUNCE
+
 	local board = {
 		width = width,
 		height = height,
@@ -559,7 +565,7 @@ function M.create_block(board, x, y, type, color)
 	assert(board, "You must provide a board")
 	assert(x and y, "You must provide a position")
 	assert(not board.slots[x][y], "The position is not empty")
-	
+
 	local sx, sy = M.slot_to_screen(board, x, y)
 	local id, color, type = board.on_create_block(vmath.vector3(sx, sy, 0), type, color)
 	board.slots[x][y] = { id = id, x = x, y = y, color = color, type = type, block = true }
@@ -638,7 +644,7 @@ local function fill_empty_slots(board, empty_slots, callback)
 	-- game object into its position.
 	--
 	for i, s in pairs(empty_slots) do
-		fall_block(board, M.create_block(board, s.x, s.y), duration)
+		slide_block(board, M.create_block(board, s.x, s.y), duration)
 	end
 
 	delay(duration, callback)
@@ -712,7 +718,7 @@ function M.stabilize(board, callback)
 				if callback then callback() end
 				break
 			end
-			
+
 			-- Find empty slots, exit if all slots are full
 			--[[local empty_slots = find_empty_slots(board)
 			print(#empty_slots)
