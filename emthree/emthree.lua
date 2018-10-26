@@ -887,7 +887,7 @@ function M.dump(board)
 				elseif block.blocker then
 					s = s ..  "X"
 				else
-					s = s ..  "O"
+					s = s ..  hash_to_hex(block.color):sub(1,1)
 				end
 			else
 				s = s ..  " "
