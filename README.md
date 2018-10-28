@@ -46,7 +46,7 @@ A block represents an element in a slot on the board. It could be fish, candy, c
 ![](images/block.png)
 
 ### Blocker
-A blocker represents an element in a slot on the board that is static. It will not fall and it will stop blocks from falling any further. Blocks have an optional type.
+A blocker represents an element in a slot on the board that is static. It will not fall and it will stop blocks from falling any further. Blockers have an optional type.
 
 ### Spawner
 A spawner represents an element in a slot on the board that creates/spawns blocks. It will not fall and it will stop blocks from falling any further. Spawners have an optional type.
@@ -69,9 +69,16 @@ Create an Emthree board of the specified dimensions
 * ```width``` (number) - Board width in blocks
 * ```height``` (number) - Board height in blocks
 * ```block_size``` (number) - Size of a block
+* ```config``` (table) - Optional table with board configuration values
+
+The `config` table can contain the following values:
+* ```collapse_duration``` - Time in seconds for the collapse animation
+* ```slide_direction``` - Direction to slide blocks in when collapsing the board after removing blocks. Can be one of `emthree.SLIDE_UP`, `emthree.SLIDE_DOWN`, `emthree.SLIDE_LEFT` or `emthree.SLIDE_RIGHT`
+* ```slide_easing``` - Easing function to apply when sliding blocks. Any of the `go.EASING_*` constants.
 
 **RETURN**
 * ```board``` (table) - A representation of the board, complete with a 2D array of blocks
+
 
 
 ### emthree.stabilize(board, callback)

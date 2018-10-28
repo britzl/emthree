@@ -9,6 +9,19 @@ M.SELECT = hash("emthree_select")
 M.RESET = hash("emthree_reset")
 
 
+M.SLIDE_DOWN = hash("emthree_slide_down")
+M.SLIDE_UP = hash("emthree_slide_up")
+M.SLIDE_LEFT = hash("emthree_slide_left")
+M.SLIDE_RIGHT = hash("emthree_slide_right")
+
+local DIRECTIONS = {
+	[M.SLIDE_DOWN] = vmath.vector3(0, -1, 0),
+	[M.SLIDE_UP] = vmath.vector3(0, 1, 0),
+	[M.SLIDE_LEFT] = vmath.vector3(-1, 0, 0),
+	[M.SLIDE_RIGHT] = vmath.vector3(1, 0, 0),
+}
+
+
 local function spawner_filter(board, x, y)
 	local block = board.slots[x][y]
 	return block and block.spawner
@@ -30,13 +43,10 @@ local function delay(seconds, fn, a)
 end
 
 
-local function slide_block(board, block, duration)
-	local position = go.get_position(block.id)
-	local height = (board.height * board.block_size)
-	go.set_position(vmath.vector3(position.x, height, position.z), block.id)
-	go.animate(block.id, "position.y", go.PLAYBACK_ONCE_FORWARD, position.y, board.config.slide_easing, duration)
+local function slide_block(board, block, from, to, duration)
+	go.set_position(from, block.id)
+	go.animate(block.id, "position", go.PLAYBACK_ONCE_FORWARD, to, board.config.slide_easing, duration)
 end
-
 
 --
 -- Returns a list of neighbor slots of the same color as
@@ -176,7 +186,7 @@ end
 
 
 --
--- Apply shift-down logic to all slots on the board, then
+-- Apply shift logic to all slots on the board, then
 -- call the callback.
 --
 local function collapse(board, callback)
@@ -184,55 +194,81 @@ local function collapse(board, callback)
 	assert(callback, "You must provide a callback")
 	local duration = board.config.collapse_duration
 
-	--
-	-- Slide all remaining blocks down into blank (nil) spots.
-	-- Going column by column makes this easy.
-	--
-	-- Avoid some garbage creation by reusing these locals
-	-- through the loops
-	--
+	local direction = DIRECTIONS[board.config.slide_direction]
+
 	local collapsed = false
 	local blocks = board.slots
 	local empty_x = nil
 	local empty_y = nil
 	local block_size = board.block_size
-	for x = 0,board.width - 1 do
-		empty_x = nil
-		empty_y = nil
-		for y = 0,board.height - 1 do
-			local block = blocks[x][y]
-			if block and block.blocker then
-				empty_x = nil
-				empty_y = nil
-			elseif block and block.spawner then
-				-- do nothing
-			elseif block then
-				if empty_x and empty_y then
-					--
-					-- Move to empty slot
-					--
-					blocks[empty_x][empty_y] = block
-					blocks[x][y] = nil
-					block.x = empty_x
-					block.y = empty_y
 
-					--
-					-- Calc new position and animate
-					---
-					local to = vmath.vector3((block_size / 2) + (block_size * empty_x), (block_size / 2) + (block_size * empty_y), 0)
-					go.animate(block.id, "position", go.PLAYBACK_ONCE_FORWARD, to, board.config.slide_easing, duration)
-					collapsed = true
-					empty_x = empty_x
-					empty_y = empty_y + 1
-				end
-			-- first empty slot
-			elseif not empty_x then
-				empty_x = x
-				empty_y = y
+	local function check_collapse(x, y)
+		local block = blocks[x][y]
+		if block and block.blocker then
+			empty_x = nil
+			empty_y = nil
+		elseif block and block.spawner then
+			-- do nothing
+		elseif block then
+			if empty_x and empty_y then
+				--
+				-- Move to empty slot
+				--
+				blocks[empty_x][empty_y] = block
+				blocks[x][y] = nil
+				block.x = empty_x
+				block.y = empty_y
+
+				--
+				-- Calc new position and animate
+				---
+				local to = vmath.vector3((block_size / 2) + (block_size * empty_x), (block_size / 2) + (block_size * empty_y), 0)
+				go.animate(block.id, "position", go.PLAYBACK_ONCE_FORWARD, to, board.config.slide_easing, duration)
+				collapsed = true
+				empty_x = empty_x - direction.x
+				empty_y = empty_y - direction.y
 			end
+		-- first empty slot
+		elseif not empty_x then
+			empty_x = x
+			empty_y = y
 		end
 	end
 
+	if board.config.slide_direction == M.SLIDE_DOWN then
+		for x = 0,board.width - 1 do
+			empty_x = nil
+			empty_y = nil
+			for y = 0,board.height - 1 do
+				check_collapse(x, y)
+			end
+		end
+	elseif board.config.slide_direction == M.SLIDE_UP then
+		for x = 0,board.width - 1 do
+			empty_x = nil
+			empty_y = nil
+			for y = board.height-1,0,-1 do
+				check_collapse(x, y)
+			end
+		end
+	elseif board.config.slide_direction == M.SLIDE_LEFT then
+		for y = 0,board.height - 1 do
+			empty_x = nil
+			empty_y = nil
+			for x = 0, board.width-1 do
+				check_collapse(x, y)
+			end
+		end
+	elseif board.config.slide_direction == M.SLIDE_RIGHT then
+		for y = 0,board.height - 1 do
+			empty_x = nil
+			empty_y = nil
+			for x = board.width-1,0,-1 do
+				check_collapse(x, y)
+			end
+		end
+	end
+	
 	if collapsed then
 		delay(duration, callback)
 	else
@@ -264,6 +300,7 @@ function M.create_board(width, height, block_size, config)
 	assert(block_size, "You must provide a block size")
 	config = config or {}
 	config.collapse_duration = config.collapse_duration or 0.2
+	config.slide_direction = config.slide_direction or M.SLIDE_DOWN
 	config.slide_easing = config.slide_easing or go.EASING_OUTBOUNCE
 
 	local board = {
@@ -632,24 +669,6 @@ local function find_empty_slots(board)
 end
 
 
---
--- Drop spawned blocks on the board. Target the supplied slots.
--- When done, call callback.
---
-local function fill_empty_slots(board, empty_slots, callback)
-	assert(board, "You must provide a board")
-	local duration = 0.3
-	--
-	-- Go through the list of empty slots and drop a block
-	-- game object into its position.
-	--
-	for i, s in pairs(empty_slots) do
-		slide_block(board, M.create_block(board, s.x, s.y), duration)
-	end
-
-	delay(duration, callback)
-end
-
 
 --
 -- Find and return any slots containing spawners
@@ -671,19 +690,32 @@ local function trigger_spawners(board, callback)
 
 	local triggered = false
 	for _,spawner in pairs(find_spawners(board)) do
-		-- find the nearest block from the spawner
-		local start_y = 0
-		for y=spawner.y - 1, 0, -1 do
-			local block = board.slots[spawner.x][y]
-			if block then
-				start_y = y + 1
-				break
-			end
+		local direction = DIRECTIONS[board.config.slide_direction]
+		local x = spawner.x + direction.x
+		local y = spawner.y + direction.y
+
+		local distance = 0
+		while M.on_board(board, x, y) and not board.slots[x][y] do
+			distance = distance + 1
+			x = x + direction.x
+			y = y + direction.y
 		end
-		if start_y <= spawner.y - 1 then
+
+		if distance > 0 then
 			triggered = true
-			for y=start_y, spawner.y - 1 do
-				fall_block(board, M.create_block(board, spawner.x, y), duration)
+			local fromslot_x = spawner.x
+			local fromslot_y = spawner.y
+			local from_x, from_y = M.slot_to_screen(board, spawner.x, spawner.y)
+			local from = vmath.vector3(from_x, from_y, 0)
+			
+			for i=1,distance do
+				local toslot_x = spawner.x + direction.x * i
+				local toslot_y = spawner.y + direction.y * i
+				local block = M.create_block(board, toslot_x, toslot_y)
+
+				local to_x, to_y = M.slot_to_screen(board, toslot_x, toslot_y)
+				local to = vmath.vector3(to_x, to_y, 0)
+				slide_block(board, block, from, to, duration)
 			end
 		end
 	end
@@ -718,16 +750,6 @@ function M.stabilize(board, callback)
 				if callback then callback() end
 				break
 			end
-
-			-- Find empty slots, exit if all slots are full
-			--[[local empty_slots = find_empty_slots(board)
-			print(#empty_slots)
-			if #empty_slots == 0 then
-				board.on_stabilized(board)
-				if callback then callback() end
-				break
-			end
-			async(function(done) fill_empty_slots(board, empty_slots, done) end)--]]
 		end
 	end
 

@@ -37,6 +37,9 @@ images {
 images {
   image: "/examples/basic/assets/brickYellow03.png"
 }
+images {
+  image: "/examples/basic/assets/brickGrey.png"
+}
 margin: 0
 extrude_borders: 2
 inner_padding: 0
