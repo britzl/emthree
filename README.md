@@ -14,7 +14,7 @@ Or point to the ZIP file of a [specific release](https://github.com/britzl/emthr
 # Examples
 Two examples, one basic and one a bit more advanced are available to try here:
 
-* https://britzl.github.io/Emthree/
+* https://britzl.github.io/Emthree/index.html
 
 
 # Usage
