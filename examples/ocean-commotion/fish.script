@@ -20,11 +20,11 @@ local colors = {
 }
 
 local function change_sprite(id)
-	msg.post("#sprite", "play_animation", { id = id })
+	sprite.play_flipbook("#sprite", id)
 end
 
 local function change_eyes(id)
-	msg.post("#sprite-eyes", "play_animation", { id = id })
+	sprite.play_flipbook("#sprite-eyes", id)
 end
 
 local function blink(self)
@@ -51,7 +51,11 @@ local function update_sprites(self)
 	msg.post("#sprite-eyes", "enable")
 	local c = colors[self.color]
 	local e = colors[self.color]
-	if self.type == block_type.STRIPED_H then
+	if self.type == block_type.BLOCKER then
+		msg.post("#sprite-eyes", "disable")
+		e = "eyes-" .. e
+		c = "fish-bones"
+	elseif self.type == block_type.STRIPED_H then
 		e = "eyes-" .. e
 		c = "fish-" .. c .. "-h"
 	elseif self.type == block_type.STRIPED_V then

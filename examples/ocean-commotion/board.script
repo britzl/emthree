@@ -51,6 +51,12 @@ local function create_block(position, type, color)
 	return id, color, type
 end
 
+local function create_blocker(position, type)
+	local id = factory.create("#fish_factory", position, null, { color = nil, type = type })
+	msg.post(id, "set_parent", { parent_id = go.get_id(), keep_world_transform = 0 })
+	return id, type
+end
+
 
 local function on_match(board, block, horisontal_neighbors, vertical_neighbors)
 	-- handle t, l and cross shaped formations
@@ -158,6 +164,7 @@ end
 function init(self)
 	self.board = emthree.create_board(boardwidth, boardheight, blocksize)
 	emthree.on_create_block(self.board, create_block)
+	emthree.on_create_blocker(self.board, create_blocker)
 	emthree.on_match(self.board, on_match)
 	emthree.on_block_removed(self.board, on_block_removed)
 	emthree.on_swap(self.board, on_swap)
