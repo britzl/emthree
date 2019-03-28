@@ -103,6 +103,9 @@ images {
 images {
   image: "/examples/ocean-commotion/assets/effects/white_dot2.png"
 }
+images {
+  image: "/examples/ocean-commotion/assets/fish/fish-bones.png"
+}
 margin: 0
 extrude_borders: 2
 inner_padding: 0
