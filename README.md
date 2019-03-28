@@ -12,17 +12,9 @@ Or point to the ZIP file of a [specific release](https://github.com/britzl/emthr
 
 
 # Examples
+Two examples, one basic and one a bit more advanced are available to try here:
 
-## Basic
-The most basic match three game without any special blocks or effects.
-
-* https://britzl.github.io/EmthreeBasic/
-
-
-## Advanced
-A more advanced example with several different special combinations.
-
-* https://britzl.github.io/EmthreeOceanCommotion/
+* https://britzl.github.io/Emthree/
 
 
 # Usage
