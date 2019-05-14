@@ -550,6 +550,7 @@ function M.remove_block(board, block, no_trigger)
 	end
 
 	msg.post(block.id, M.REMOVE)
+	block.removed = true
 	--
 	-- Empty slots are set to nil so we can find them
 	--
@@ -813,7 +814,7 @@ function M.on_input(board, action)
 				if (dx == 1 and dy == 0) or (dy == 1 and dx == 0) then
 					swap_slots(board, board.mark_1, board.mark_2)
 				end
-				msg.post(board.mark_1.id, M.RESET)
+				if not board.mark_1.removed then msg.post(board.mark_1.id, M.RESET) end
 				board.mark_1 = nil
 				board.mark_2 = nil
 				msg.post(".", "acquire_input_focus")
@@ -830,7 +831,7 @@ function M.on_input(board, action)
 				if dx == 0 or dy == 0 and block then
 					swap_slots(board, board.mark_1, block)
 				end
-				msg.post(board.mark_1.id, M.RESET)
+				if not board.mark_1.removed then msg.post(board.mark_1.id, M.RESET) end
 				board.mark_1 = nil
 				msg.post(".", "acquire_input_focus")
 			end)
