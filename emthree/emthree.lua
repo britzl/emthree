@@ -218,7 +218,7 @@ local function collapse(board, callback)
 
 	local empty_right = 0
 	local empty_left = 0
-	
+
 	local function check_collapse(x, y)
 		local block = blocks[x][y]
 		if block and block.blocker then
@@ -286,7 +286,7 @@ local function collapse(board, callback)
 					empty_left = empty_left + 1
 				end
 			end
-		-- first empty slot
+			-- first empty slot
 		elseif not empty_x then
 			empty_right = 0
 			empty_left = 0
@@ -336,11 +336,113 @@ local function collapse(board, callback)
 			end
 		end
 	end
-	
+
 	if collapsed then
 		delay(duration, callback, collapsed)
 	else
 		callback(collapsed)
+	end
+end
+
+--
+-- Apply slide logic to all slots on the board, then
+-- call the callback.
+--
+local function slide(board, callback)
+	assert(board, "You must provide a board")
+	assert(callback, "You must provide a callback")
+	local duration = board.config.collapse_duration
+
+	local direction = DIRECTIONS[board.config.slide_direction]
+	local orthogonal = ORTHOGONAL[board.config.slide_direction]
+
+	local did_slide = false
+	local blocks = board.slots
+	local block_size = board.block_size
+
+	local empty_right = 0
+	local empty_left = 0
+
+	local function check_slide(x, y)
+		local block = blocks[x][y]
+		if block and not block.spawner and not block.blocker then
+			-- slide block if there's empty slots left and/or right
+			if empty_right == 2 or empty_left == 2 then
+				-- left or right?
+				if empty_right == 2 and empty_left == 2 then
+					if (x % 2 == 0) then
+						empty_right = 0
+					else
+						empty_left = 0
+					end
+				end
+
+				-- where to slide?
+				local tox = x
+				local toy = y + direction.y
+				if empty_right > 0 then
+					tox = tox + orthogonal.x
+					empty_right = 0
+				else
+					tox = tox - orthogonal.x
+					empty_left = 0
+				end
+				blocks[tox][toy] = block
+				blocks[x][y] = nil
+
+				-- slide diagonal
+				local to = vmath.vector3((block_size / 2) + (block_size * tox), (block_size / 2) + (block_size * toy), 0)
+				go.animate(block.id, "position", go.PLAYBACK_ONCE_FORWARD, to, board.config.slide_easing, duration)
+				did_slide = true
+			else
+				if is_empty(board, x + orthogonal.x, y + orthogonal.y) then
+					empty_right = empty_right + 1
+				end
+				if is_empty(board, x - orthogonal.x, y - orthogonal.y) then
+					empty_left = empty_left + 1
+				end
+			end
+		end
+	end
+
+	if board.config.slide_direction == M.SLIDE_DOWN then
+		for x = 0,board.width - 1 do
+			empty_right = 0
+			empty_left = 0
+			for y = 0,board.height - 1 do
+				check_slide(x, y)
+			end
+		end
+	elseif board.config.slide_direction == M.SLIDE_UP then
+		for x = 0,board.width - 1 do
+			empty_right = 0
+			empty_left = 0
+			for y = board.height-1,0,-1 do
+				check_slide(x, y)
+			end
+		end
+	elseif board.config.slide_direction == M.SLIDE_LEFT then
+		for y = 0,board.height - 1 do
+			empty_right = 0
+			empty_left = 0
+			for x = 0, board.width-1 do
+				check_slide(x, y)
+			end
+		end
+	elseif board.config.slide_direction == M.SLIDE_RIGHT then
+		for y = 0,board.height - 1 do
+			empty_right = 0
+			empty_left = 0
+			for x = board.width-1,0,-1 do
+				check_slide(x, y)
+			end
+		end
+	end
+
+	if did_slide then
+		delay(duration, callback, did_slide)
+	else
+		callback(did_slide)
 	end
 end
 
@@ -811,10 +913,11 @@ function M.stabilize(board, callback)
 				find_matching_neighbors(board)
 				remove_matching_neighbors(board, done)
 			end)
-			local collapsed = async(function(done) collapse(board, done) end)
-
-			local triggered = async(function(done) trigger_spawners(board, done) end)
-			if not triggered and not collapsed then
+			local did_collapse = async(function(done) collapse(board, done) end)
+			local did_slide = async(function(done) slide(board, done) end)
+			
+			local did_spawn = async(function(done) trigger_spawners(board, done) end)
+			if not did_spawn and not did_collapse and not did_slide then
 				board.on_stabilized(board)
 				if callback then callback() end
 				break
