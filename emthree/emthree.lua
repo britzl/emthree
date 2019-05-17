@@ -21,6 +21,13 @@ local DIRECTIONS = {
 	[M.SLIDE_RIGHT] = vmath.vector3(1, 0, 0),
 }
 
+local ORTHOGONAL = {
+	[M.SLIDE_DOWN] = vmath.vector3(1, 0, 0),
+	[M.SLIDE_UP] = vmath.vector3(1, 0, 0),
+	[M.SLIDE_LEFT] = vmath.vector3(0, 1, 0),
+	[M.SLIDE_RIGHT] = vmath.vector3(0, 1, 0),
+}
+
 
 local function spawner_filter(board, x, y)
 	local block = board.slots[x][y]
@@ -184,7 +191,13 @@ local function remove_matching_neighbors(board, callback)
 	delay(duration, callback)
 end
 
-
+local function is_empty(board, x, y)
+	if x >= board.width or x < 0 or y >= board.height or y < 0 then
+		return false
+	else
+		return board.slots[x][y] == nil
+	end
+end
 --
 -- Apply shift logic to all slots on the board, then
 -- call the callback.
@@ -195,6 +208,7 @@ local function collapse(board, callback)
 	local duration = board.config.collapse_duration
 
 	local direction = DIRECTIONS[board.config.slide_direction]
+	local orthogonal = ORTHOGONAL[board.config.slide_direction]
 
 	local collapsed = false
 	local blocks = board.slots
@@ -202,14 +216,20 @@ local function collapse(board, callback)
 	local empty_y = nil
 	local block_size = board.block_size
 
+	local empty_right = 0
+	local empty_left = 0
+	
 	local function check_collapse(x, y)
 		local block = blocks[x][y]
 		if block and block.blocker then
 			empty_x = nil
 			empty_y = nil
+			empty_right = 0
+			empty_left = 0
 		elseif block and block.spawner then
 			-- do nothing
 		elseif block then
+			-- collapse block if there's an empty block below
 			if empty_x and empty_y then
 				--
 				-- Move to empty slot
@@ -227,9 +247,49 @@ local function collapse(board, callback)
 				collapsed = true
 				empty_x = empty_x - direction.x
 				empty_y = empty_y - direction.y
+				empty_right = 0
+				empty_left = 0
+			elseif empty_right == 2 or empty_left == 2 then
+				-- left or right?
+				if empty_right == 2 and empty_left == 2 then
+					if (x % 2 == 0) then
+						empty_right = 0
+					else
+						empty_left = 0
+					end
+				end
+
+				-- where to slide?
+				local tox = x
+				local toy = y + direction.y
+				if empty_right > 0 then
+					tox = tox + orthogonal.x
+					empty_right = 0
+				else
+					tox = tox - orthogonal.x
+					empty_left = 0
+				end
+				blocks[tox][toy] = block
+				blocks[x][y] = nil
+
+				-- slide diagonal
+				local to = vmath.vector3((block_size / 2) + (block_size * tox), (block_size / 2) + (block_size * toy), 0)
+				go.animate(block.id, "position", go.PLAYBACK_ONCE_FORWARD, to, board.config.slide_easing, duration)
+				collapsed = true
+				empty_x = x
+				empty_y = y
+			else
+				if is_empty(board, x + orthogonal.x, y + orthogonal.y) then
+					empty_right = empty_right + 1
+				end
+				if is_empty(board, x - orthogonal.x, y - orthogonal.y) then
+					empty_left = empty_left + 1
+				end
 			end
 		-- first empty slot
 		elseif not empty_x then
+			empty_right = 0
+			empty_left = 0
 			empty_x = x
 			empty_y = y
 		end
@@ -237,6 +297,8 @@ local function collapse(board, callback)
 
 	if board.config.slide_direction == M.SLIDE_DOWN then
 		for x = 0,board.width - 1 do
+			empty_right = 0
+			empty_left = 0
 			empty_x = nil
 			empty_y = nil
 			for y = 0,board.height - 1 do
@@ -245,6 +307,8 @@ local function collapse(board, callback)
 		end
 	elseif board.config.slide_direction == M.SLIDE_UP then
 		for x = 0,board.width - 1 do
+			empty_right = 0
+			empty_left = 0
 			empty_x = nil
 			empty_y = nil
 			for y = board.height-1,0,-1 do
@@ -253,6 +317,8 @@ local function collapse(board, callback)
 		end
 	elseif board.config.slide_direction == M.SLIDE_LEFT then
 		for y = 0,board.height - 1 do
+			empty_right = 0
+			empty_left = 0
 			empty_x = nil
 			empty_y = nil
 			for x = 0, board.width-1 do
@@ -261,6 +327,8 @@ local function collapse(board, callback)
 		end
 	elseif board.config.slide_direction == M.SLIDE_RIGHT then
 		for y = 0,board.height - 1 do
+			empty_right = 0
+			empty_left = 0
 			empty_x = nil
 			empty_y = nil
 			for x = board.width-1,0,-1 do
@@ -270,9 +338,9 @@ local function collapse(board, callback)
 	end
 	
 	if collapsed then
-		delay(duration, callback)
+		delay(duration, callback, collapsed)
 	else
-		callback()
+		callback(collapsed)
 	end
 end
 
@@ -743,10 +811,10 @@ function M.stabilize(board, callback)
 				find_matching_neighbors(board)
 				remove_matching_neighbors(board, done)
 			end)
-			async(function(done) collapse(board, done) end)
+			local collapsed = async(function(done) collapse(board, done) end)
 
 			local triggered = async(function(done) trigger_spawners(board, done) end)
-			if not triggered then
+			if not triggered and not collapsed then
 				board.on_stabilized(board)
 				if callback then callback() end
 				break

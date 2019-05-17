@@ -29,10 +29,31 @@ local function create_spawner(position, type)
 	return id, type
 end
 
+local function create_blocker(position, type)
+	position.z = 1
+	local id = factory.create("#factory", position, null, { type = type, color = hash("brickSpecial06") })
+	msg.post(id, "set_parent", { parent_id = go.get_id(), keep_world_transform = 0 })
+	return id, type
+end
+
 function init(self)
 	self.board = emthree.create_board(boardwidth, boardheight, blocksize, { direction = emthree.SLIDE_DOWN })
 	emthree.on_create_block(self.board, create_block)
 	emthree.on_create_spawner(self.board, create_spawner)
+	emthree.on_create_blocker(self.board, create_blocker)
+
+	
+	--[[local x = 3
+	emthree.create_block(self.board, x, 0, hash("normal"), hash("brickRed04"))
+	emthree.create_block(self.board, x, 1, hash("normal"), hash("brickBlue06"))
+	emthree.create_block(self.board, x, 2, hash("normal"), hash("brickGreen05"))
+	emthree.create_block(self.board, x, 3, hash("normal"), hash("brickYellow03"))
+	emthree.create_block(self.board, x, 4, hash("normal"), hash("brickGreen05"))
+	emthree.create_block(self.board, x, 5, hash("normal"), hash("brickYellow03"))
+	emthree.create_block(self.board, x, 6, hash("normal"), hash("brickBlue06"))
+	emthree.create_block(self.board, x, 7, hash("normal"), hash("brickRed04"))--]]
+
+	emthree.create_blocker(self.board, 3, 5, hash("BLOCKER"))
 	for x=0,boardwidth-1 do
 		emthree.create_spawner(self.board, x, boardheight - 1, hash("SPAWNER"))
 	end
