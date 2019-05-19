@@ -64,9 +64,13 @@ Create an Emthree board of the specified dimensions
 * ```config``` (table) - Optional table with board configuration values
 
 The `config` table can contain the following values:
+* ```remove_duration``` - Time in seconds to wait while removing blocks
+* ```swap_duration```  Time in seconds for the swap animation
+* ```slide_duration``` - Time in seconds for the slide animation
 * ```collapse_duration``` - Time in seconds for the collapse animation
-* ```slide_direction``` - Direction to slide blocks in when collapsing the board after removing blocks. Can be one of `emthree.SLIDE_UP`, `emthree.SLIDE_DOWN`, `emthree.SLIDE_LEFT` or `emthree.SLIDE_RIGHT`
+* ```collapse_direction``` - Direction to move blocks in when collapsing the board after removing blocks. Can be one of `emthree.COLLAPSE_UP`, `emthree.COLLAPSE_DOWN`, `emthree.COLLAPSE_LEFT` or `emthree.COLLAPSE_RIGHT`
 * ```slide_easing``` - Easing function to apply when sliding blocks. Any of the `go.EASING_*` constants.
+* ```collapse_easing``` - Easing function to apply when collapsing blocks. Any of the `go.EASING_*` constants.
 
 **RETURN**
 * ```board``` (table) - A representation of the board, complete with a 2D array of blocks

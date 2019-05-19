@@ -9,23 +9,23 @@ M.SELECT = hash("emthree_select")
 M.RESET = hash("emthree_reset")
 
 
-M.SLIDE_DOWN = hash("emthree_slide_down")
-M.SLIDE_UP = hash("emthree_slide_up")
-M.SLIDE_LEFT = hash("emthree_slide_left")
-M.SLIDE_RIGHT = hash("emthree_slide_right")
+M.COLLAPSE_DOWN = hash("emthree_slide_down")
+M.COLLAPSE_UP = hash("emthree_slide_up")
+M.COLLAPSE_LEFT = hash("emthree_slide_left")
+M.COLLAPSE_RIGHT = hash("emthree_slide_right")
 
 local DIRECTIONS = {
-	[M.SLIDE_DOWN] = vmath.vector3(0, -1, 0),
-	[M.SLIDE_UP] = vmath.vector3(0, 1, 0),
-	[M.SLIDE_LEFT] = vmath.vector3(-1, 0, 0),
-	[M.SLIDE_RIGHT] = vmath.vector3(1, 0, 0),
+	[M.COLLAPSE_DOWN] = vmath.vector3(0, -1, 0),
+	[M.COLLAPSE_UP] = vmath.vector3(0, 1, 0),
+	[M.COLLAPSE_LEFT] = vmath.vector3(-1, 0, 0),
+	[M.COLLAPSE_RIGHT] = vmath.vector3(1, 0, 0),
 }
 
 local ORTHOGONAL = {
-	[M.SLIDE_DOWN] = vmath.vector3(1, 0, 0),
-	[M.SLIDE_UP] = vmath.vector3(1, 0, 0),
-	[M.SLIDE_LEFT] = vmath.vector3(0, 1, 0),
-	[M.SLIDE_RIGHT] = vmath.vector3(0, 1, 0),
+	[M.COLLAPSE_DOWN] = vmath.vector3(1, 0, 0),
+	[M.COLLAPSE_UP] = vmath.vector3(1, 0, 0),
+	[M.COLLAPSE_LEFT] = vmath.vector3(0, 1, 0),
+	[M.COLLAPSE_RIGHT] = vmath.vector3(0, 1, 0),
 }
 
 
@@ -47,12 +47,6 @@ local function delay(seconds, fn, a)
 	timer.delay(seconds, false, function()
 		fn(a)
 	end)
-end
-
-
-local function slide_block(board, block, from, to, duration)
-	go.set_position(from, block.id)
-	go.animate(block.id, "position", go.PLAYBACK_ONCE_FORWARD, to, board.config.slide_easing, duration)
 end
 
 --
@@ -172,11 +166,13 @@ end
 local function remove_matching_neighbors(board, callback)
 	assert(board, "You must provide a board")
 	assert(callback, "You must provide a callback")
-	local duration = 0.3
+	local duration = 0
 
+	local did_remove = false
 	-- handle t, l and cross shaped block formations in a first pass
 	for block in M.iterate_blocks(board) do
 		if #block.horisontal_neighbors >= 2 and #block.vertical_neighbors >= 2 then
+			did_remove = true
 			board.on_match(board, block, block.horisontal_neighbors, block.vertical_neighbors)
 		end
 	end
@@ -184,18 +180,15 @@ local function remove_matching_neighbors(board, callback)
 	-- handle horisontal and vertical
 	for block in M.iterate_blocks(board) do
 		if #block.horisontal_neighbors >= 2 or #block.vertical_neighbors >= 2 then
+			did_remove = true
 			board.on_match(board, block, block.horisontal_neighbors, block.vertical_neighbors)
 		end
 	end
 
-	delay(duration, callback)
-end
-
-local function is_empty(board, x, y)
-	if x >= board.width or x < 0 or y >= board.height or y < 0 then
-		return false
+	if did_remove then
+		delay(duration, callback)
 	else
-		return board.slots[x][y] == nil
+		callback()
 	end
 end
 
@@ -208,7 +201,7 @@ local function collapse(board, callback)
 	assert(callback, "You must provide a callback")
 	local duration = board.config.collapse_duration
 
-	local direction = DIRECTIONS[board.config.slide_direction]
+	local direction = DIRECTIONS[board.config.collapse_direction]
 
 	local collapsed = false
 	local blocks = board.slots
@@ -238,7 +231,7 @@ local function collapse(board, callback)
 				-- Calc new position and animate
 				---
 				local to = vmath.vector3((block_size / 2) + (block_size * empty_x), (block_size / 2) + (block_size * empty_y), 0)
-				go.animate(block.id, "position", go.PLAYBACK_ONCE_FORWARD, to, board.config.slide_easing, duration)
+				go.animate(block.id, "position", go.PLAYBACK_ONCE_FORWARD, to, board.config.collapse_easing, duration)
 				collapsed = true
 				empty_x = empty_x - direction.x
 				empty_y = empty_y - direction.y
@@ -250,7 +243,7 @@ local function collapse(board, callback)
 		end
 	end
 
-	if board.config.slide_direction == M.SLIDE_DOWN then
+	if board.config.collapse_direction == M.COLLAPSE_DOWN then
 		for x = 0,board.width - 1 do
 			empty_x = nil
 			empty_y = nil
@@ -258,7 +251,7 @@ local function collapse(board, callback)
 				check_collapse(x, y)
 			end
 		end
-	elseif board.config.slide_direction == M.SLIDE_UP then
+	elseif board.config.collapse_direction == M.COLLAPSE_UP then
 		for x = 0,board.width - 1 do
 			empty_x = nil
 			empty_y = nil
@@ -266,7 +259,7 @@ local function collapse(board, callback)
 				check_collapse(x, y)
 			end
 		end
-	elseif board.config.slide_direction == M.SLIDE_LEFT then
+	elseif board.config.collapse_direction == M.COLLAPSE_LEFT then
 		for y = 0,board.height - 1 do
 			empty_x = nil
 			empty_y = nil
@@ -274,7 +267,7 @@ local function collapse(board, callback)
 				check_collapse(x, y)
 			end
 		end
-	elseif board.config.slide_direction == M.SLIDE_RIGHT then
+	elseif board.config.collapse_direction == M.COLLAPSE_RIGHT then
 		for y = 0,board.height - 1 do
 			empty_x = nil
 			empty_y = nil
@@ -298,10 +291,10 @@ end
 local function slide(board, callback)
 	assert(board, "You must provide a board")
 	assert(callback, "You must provide a callback")
-	local duration = board.config.collapse_duration
+	local duration = board.config.slide_duration
 
-	local direction = DIRECTIONS[board.config.slide_direction]
-	local orthogonal = ORTHOGONAL[board.config.slide_direction]
+	local direction = DIRECTIONS[board.config.collapse_direction]
+	local orthogonal = ORTHOGONAL[board.config.collapse_direction]
 
 	local did_slide = false
 	local blocks = board.slots
@@ -312,11 +305,14 @@ local function slide(board, callback)
 
 	local function check_slide(x, y)
 		local block = blocks[x][y]
-		if block and not block.spawner and not block.blocker then
+		if block and block.blocker then
+			empty_right = 0
+			empty_left = 0
+		elseif block and not block.spawner and not block.blocker then
 			-- slide block if there's empty slots left and/or right
-			if empty_right == 2 or empty_left == 2 then
+			if empty_right >= 1 or empty_left >= 1 then
 				-- left or right?
-				if empty_right == 2 and empty_left == 2 then
+				if empty_right >= 1 and empty_left >= 1 then
 					if (x % 2 == 0) then
 						empty_right = 0
 					else
@@ -336,52 +332,74 @@ local function slide(board, callback)
 				end
 				blocks[tox][toy] = block
 				blocks[x][y] = nil
-
+				block.x = tox
+				block.y = toy
+				
 				-- slide diagonal
 				local to = vmath.vector3((block_size / 2) + (block_size * tox), (block_size / 2) + (block_size * toy), 0)
 				go.animate(block.id, "position", go.PLAYBACK_ONCE_FORWARD, to, board.config.slide_easing, duration)
 				did_slide = true
 			else
-				if is_empty(board, x + orthogonal.x, y + orthogonal.y) then
+				local rx = x + orthogonal.x
+				local ry = y + orthogonal.y
+				if M.is_empty(board, rx, ry) then
 					empty_right = empty_right + 1
+				elseif M.is_blocker(board, rx, ry) then
+					empty_right = 0
 				end
-				if is_empty(board, x - orthogonal.x, y - orthogonal.y) then
+				local lx = x - orthogonal.x
+				local ly = y - orthogonal.y
+				if M.is_empty(board, lx, ly) then
 					empty_left = empty_left + 1
+				elseif M.is_blocker(board, lx, ly) then
+					empty_left = 0
 				end
 			end
 		end
 	end
 
-	if board.config.slide_direction == M.SLIDE_DOWN then
+	if board.config.collapse_direction == M.COLLAPSE_DOWN then
 		for x = 0,board.width - 1 do
 			empty_right = 0
 			empty_left = 0
 			for y = 0,board.height - 1 do
 				check_slide(x, y)
+				if did_slide then
+					break
+				end
 			end
 		end
-	elseif board.config.slide_direction == M.SLIDE_UP then
+	elseif board.config.collapse_direction == M.COLLAPSE_UP then
 		for x = 0,board.width - 1 do
 			empty_right = 0
 			empty_left = 0
 			for y = board.height-1,0,-1 do
 				check_slide(x, y)
+				if did_slide then
+					break
+				end
 			end
 		end
-	elseif board.config.slide_direction == M.SLIDE_LEFT then
+	elseif board.config.collapse_direction == M.COLLAPSE_LEFT then
 		for y = 0,board.height - 1 do
 			empty_right = 0
 			empty_left = 0
 			for x = 0, board.width-1 do
 				check_slide(x, y)
+				if did_slide then
+					break
+				end
 			end
 		end
-	elseif board.config.slide_direction == M.SLIDE_RIGHT then
+	elseif board.config.collapse_direction == M.COLLAPSE_RIGHT then
 		for y = 0,board.height - 1 do
 			empty_right = 0
 			empty_left = 0
 			for x = board.width-1,0,-1 do
 				check_slide(x, y)
+				if did_slide then
+					break
+				end
 			end
 		end
 	end
@@ -416,10 +434,14 @@ function M.create_board(width, height, block_size, config)
 	assert(height, "You must provide a board height")
 	assert(block_size, "You must provide a block size")
 	config = config or {}
+	config.swap_duration = config.swap_duration or 0.2
+	config.remove_duration = config.remove_duration or 0
+	config.slide_duration = config.slide_duration or 0.2
 	config.collapse_duration = config.collapse_duration or 0.2
-	config.slide_direction = config.slide_direction or M.SLIDE_DOWN
-	config.slide_easing = config.slide_easing or go.EASING_OUTBOUNCE
-
+	config.collapse_direction = config.collapse_direction or M.COLLAPSE_DOWN
+	config.collapse_easing = config.collapse_easing or go.EASING_OUTBOUNCE
+	config.slide_easing = config.slide_easing or go.EASING_LINEAR
+	
 	local board = {
 		width = width,
 		height = height,
@@ -483,7 +505,7 @@ end
 
 
 local function swap(board, slot1, slot2, callback)
-	local duration = 0.2
+	local duration = board.config.swap_duration
 
 	local pos1 = go.get_position(slot1.id)
 	local pos2 = go.get_position(slot2.id)
@@ -804,11 +826,11 @@ end
 
 local function trigger_spawners(board, callback)
 	assert(board, "You must provide a board")
-	local duration = 0.3
+	local duration = board.config.collapse_duration
 
 	local triggered = false
 	for _,spawner in pairs(find_spawners(board)) do
-		local direction = DIRECTIONS[board.config.slide_direction]
+		local direction = DIRECTIONS[board.config.collapse_direction]
 		local x = spawner.x + direction.x
 		local y = spawner.y + direction.y
 
@@ -833,7 +855,8 @@ local function trigger_spawners(board, callback)
 
 				local to_x, to_y = M.slot_to_screen(board, toslot_x, toslot_y)
 				local to = vmath.vector3(to_x, to_y, 0)
-				slide_block(board, block, from, to, duration)
+				go.set_position(from, block.id)
+				go.animate(block.id, "position", go.PLAYBACK_ONCE_FORWARD, to, board.config.collapse_easing, duration)
 			end
 		end
 	end
@@ -863,10 +886,8 @@ function M.stabilize(board, callback)
 			local did_collapse = async(function(done) collapse(board, done) end)
 			local did_spawn = async(function(done) trigger_spawners(board, done) end)
 			local did_slide = async(function(done) slide(board, done) end)
-			if did_slide then
-				async(function(done) collapse(board, done) end)
-			end
-			if not did_spawn and not did_collapse and not did_slide then
+						
+			if not did_spawn and not did_collapse and not did_slide and not did_spawn2 then
 				board.on_stabilized(board)
 				if callback then callback() end
 				break
@@ -948,7 +969,7 @@ function M.on_input(board, action)
 				local dx = utils.clamp(board.mark_1.x - x, -1, 1)
 				local dy = utils.clamp(board.mark_1.y - y, -1, 1)
 				block = M.get_block(board, board.mark_1.x - dx, board.mark_1.y - dy)
-				if dx == 0 or dy == 0 and block then
+				if (dx == 0 or dy == 0) and block and not block.blocker then
 					swap_slots(board, board.mark_1, block)
 				end
 				if not board.mark_1.removed then msg.post(board.mark_1.id, M.RESET) end
