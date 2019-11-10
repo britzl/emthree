@@ -923,6 +923,8 @@ function M.on_input(board, action)
 	local block = M.get_block(board, x, y)
 	if block and block.blocker then
 		return
+    elseif block and block.spawner then
+        return
 	end
 
 	if action.pressed then
