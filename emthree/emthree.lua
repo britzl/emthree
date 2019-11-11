@@ -921,10 +921,8 @@ function M.on_input(board, action)
 	assert(action.pressed or action.released, "You must provide either a pressed or released action")
 	local x, y = M.screen_to_slot(board, action.x, action.y)
 	local block = M.get_block(board, x, y)
-	if block and block.blocker then
+	if block and (block.blocker or block.spawner) then
 		return
-    elseif block and block.spawner then
-        return
 	end
 
 	if action.pressed then
