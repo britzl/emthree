@@ -887,7 +887,7 @@ function M.stabilize(board, callback)
 			local did_spawn = async(function(done) trigger_spawners(board, done) end)
 			local did_slide = async(function(done) slide(board, done) end)
 						
-			if not did_spawn and not did_collapse and not did_slide and not did_spawn2 then
+			if not did_spawn and not did_collapse and not did_slide then
 				board.on_stabilized(board)
 				if callback then callback() end
 				break
