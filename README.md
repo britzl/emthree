@@ -367,7 +367,7 @@ Set a function to be called whenever a two blocks have swapped places based on u
 ## EmthreeAPI - Utility functions
 
 ### emthree.screen_to_slot(board, x, y)
-Get the slot at a screen position.
+Get the slot at a screen position (pixels).
 
 **PARAMETERS**
 * ```board``` (table) - The board to get the slot from
@@ -375,12 +375,12 @@ Get the slot at a screen position.
 * ```y``` (number) - Vertical screen position (pixels)
 
 **RETURN**
-* ```x``` (number) - Horizontal pixel position
-* ```y``` (number) - Vertical pixel position
+* ```x``` (number) - Horizontal slot position
+* ```y``` (number) - Vertical slot position
 
 
 ### emthree.slot_to_screen(board, x, y)
-Get the screen coordinates of a slot.
+Get the screen position (pixels) of a slot.
 
 **PARAMETERS**
 * ```board``` (table) - The board to get the slot from
@@ -388,8 +388,8 @@ Get the screen coordinates of a slot.
 * ```y``` (number) - Vertical slot position
 
 **RETURN**
-* ```x``` (number) - Horizontal slot position
-* ```y``` (number) - Vertical slot position
+* ```x``` (number) - Horizontal screen position (pixels)
+* ```y``` (number) - Vertical screen position (pixels)
 
 
 ## EmthreeAPI - Messages
