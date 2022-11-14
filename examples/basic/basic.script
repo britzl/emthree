@@ -49,9 +49,8 @@ function init(self)
 	emthree.on_create_block(self.board, create_block)
 	emthree.on_create_spawner(self.board, create_spawner)
 	emthree.on_create_blocker(self.board, create_blocker)
-
+	emthree.on_no_possible_switches(self.board, function() emthree.shuffle(self.board) end)
 	
-
 	for x=0,boardwidth-1 do
 		emthree.create_spawner(self.board, x, boardheight - 1, hash("SPAWNER"))
 	end

@@ -487,6 +487,10 @@ function M.create_board(width, height, block_size, config)
 	M.on_create_spawner(board, function(board, x, y, type)
 		return nil, type
 	end)
+
+	M.on_no_possible_switches(board, function(board)
+		-- do nothing
+	end)
 	return board
 end
 
@@ -868,6 +872,49 @@ local function trigger_spawners(board, callback)
 	end
 end
 
+-- simple block swap without animations or callbacks
+local function quick_swap(board, block1, block2)
+	board.slots[block1.x][block1.y], board.slots[block2.x][block2.y] = board.slots[block2.x][block2.y], board.slots[block1.x][block1.y]
+	block1.x, block2.x = block2.x, block1.x
+	block1.y, block2.y = block2.y, block1.y
+end
+
+-- swap two blocks amd check if there is a match
+local function swap_and_check_match(board, block1, block2)
+	if not block1 or not block2 then return false end
+	if block1.blocker or block2.blocker then return false end
+	if block1.spawner or block2.spawner then return false end
+	quick_swap(board, block1, block2)
+	local hn1 = horisontal_neighbors(board, block1.x, block1.y)
+	local vn1 = vertical_neighbors(board, block1.x, block1.y)
+	local hn2 = horisontal_neighbors(board, block2.x, block2.y)
+	local vn2 = vertical_neighbors(board, block2.x, block2.y)
+	quick_swap(board, block1, block2)
+	return #hn1 >= 2 or #hn2 >= 2 or #vn1 >= 2 or #vn2 >= 2
+end
+
+-- check if the board has any possible switches which will
+-- result in a match of three or more blocks in a row
+-- this does not take into account special blocks
+local function has_possible_switches(board)
+	assert(board, "You must provide a board")
+	for x = 1, board.width - 2 do
+		for y = 1, board.height - 2 do
+			local slot = board.slots[x][y]
+			local up = board.slots[x][y + 1]
+			local down = board.slots[x][y - 1]
+			local left = board.slots[x - 1][y]
+			local right = board.slots[x + 1][y]
+			
+			if swap_and_check_match(board, slot, up) then return true end
+			if swap_and_check_match(board, slot, down) then return true end
+			if swap_and_check_match(board, slot, left) then return true end
+			if swap_and_check_match(board, slot, right) then return true end
+		end
+	end
+	return false
+end
+
 
 --- Stabilize the board
 -- This will find and remove matching blocks and spawn new blocks in their
@@ -889,6 +936,9 @@ function M.stabilize(board, callback)
 						
 			if not did_spawn and not did_collapse and not did_slide then
 				board.on_stabilized(board)
+				if not has_possible_switches(board) then
+					board.on_no_possible_switches(board)
+				end
 				if callback then callback() end
 				break
 			end
@@ -902,6 +952,38 @@ function M.stabilize(board, callback)
 	end
 end
 
+
+function M.shuffle(board, callback)
+	assert(board, "You must provide a board")
+	assert(coroutine.running())
+
+	-- get list of all blocks that can be shuffled
+	local blocks = {}
+	for x = 0, board.width - 1 do
+		for y = 0, board.height - 1 do
+			local slot = board.slots[x][y]
+			if slot and not slot.blocker and not slot.spawner then
+				blocks[#blocks + 1] = slot
+			end
+		end
+	end
+	-- make sure there is an even number of blovks
+	if #blocks % 2 == 1 then
+		blocks[#blocks] = nil
+	end
+	-- shuffle blocks
+	for i = #blocks, 2, -1 do
+		local j = math.random(i)
+		blocks[i], blocks[j] = blocks[j], blocks[i]
+	end
+	-- swap places on blocks
+	while #blocks > 0 do
+		local block1 = table.remove(blocks)
+		local block2 = table.remove(blocks)
+		async(function(done) swap(board, block1, block2, done) end)
+	end
+	M.stabilize(board, callback)
+end
 
 --- Check if a position is on the board or not
 -- @param board
@@ -1121,5 +1203,11 @@ function M.on_create_spawner(board, fn)
 	board.on_create_spawner = fn
 end
 
+
+function M.on_no_possible_switches(board, fn)
+	assert(board, "You must provide a board")
+	assert(fn, "You must provide a function")
+	board.on_no_possible_switches = fn
+end
 
 return M

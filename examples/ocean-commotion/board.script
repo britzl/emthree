@@ -168,6 +168,7 @@ function init(self)
 	emthree.on_match(self.board, on_match)
 	emthree.on_block_removed(self.board, on_block_removed)
 	emthree.on_swap(self.board, on_swap)
+	emthree.on_no_possible_switches(self.board, function() emthree.shuffle(self.board) end)
 
 	-- start the board
 	for x=0,boardwidth-1 do

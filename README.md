@@ -231,7 +231,7 @@ Create a new block on the board. This will call the function passed to `emthree.
 
 
 ### emthree.create_blocker(board, x, y, type)
-Create a new blocker on the board. This will call the function passed to `emthree.on_create_blocker()``
+Create a new blocker on the board. This will call the function passed to `emthree.on_create_blocker()`
 
 **PARAMETERS**
 * ```board``` (table) - The board to create blocker on
@@ -244,7 +244,7 @@ Create a new blocker on the board. This will call the function passed to `emthre
 
 
 ### emthree.create_spawner(board, x, y, type)
-Create a new spawner on the board. This will call the function passed to `emthree.on_create_spawner()``
+Create a new spawner on the board. This will call the function passed to `emthree.on_create_spawner()`
 
 **PARAMETERS**
 * ```board``` (table) - The board to create spawner on
@@ -261,6 +261,13 @@ Fill the board with blocks. This will call the function passed to `emthree.on_cr
 
 **PARAMETERS**
 * ```board``` (table) - The board to fill with blocks
+
+
+### emthree.shuffle(board, callback)
+Shuffle the blocks on the board.
+
+**PARAMETERS**
+* ```board``` (table) - The board to shuffle blocks on
 
 
 ## EmthreeAPI - Callbacks
@@ -362,6 +369,14 @@ Set a function to be called whenever a two blocks have swapped places based on u
 **PARAMETERS**
 * ```board``` (table) - The board where swaps will be notified
 * ```fn``` (function) - The function to call when a swap is made. The function is expected to take `board`, `slot1` and `slot2` as arguments and return true if swap resulted in any changes on the board.
+
+
+### emthree.on_no_possible_switches(board, fn)
+Set a function to be called whenever the board has no possible switches available to create a match. You can use `emthree.shuffle()` to attempt to rearragne the blocks.
+
+**PARAMETERS**
+* ```board``` (table) - The board where no possible switches availab le will be notified
+* ```fn``` (function) - The function to call when no possible switches are detected. The function is expected to take `board` as arguments.
 
 
 ## EmthreeAPI - Utility functions
