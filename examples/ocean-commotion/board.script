@@ -196,12 +196,24 @@ function on_input(self, action_id, action)
 		self.on_touch = change_block(block_type.STRIPED_H, nil)
 	elseif action_id == hash("vertical") and action.released then
 		self.on_touch = change_block(block_type.STRIPED_V, nil)
+	elseif action_id == hash("color1") and action.released then
+		self.on_touch = change_block(block_type.PLAIN, colors[1])
+	elseif action_id == hash("color2") and action.released then
+		self.on_touch = change_block(block_type.PLAIN, colors[2])
+	elseif action_id == hash("color3") and action.released then
+		self.on_touch = change_block(block_type.PLAIN, colors[3])
+	elseif action_id == hash("color4") and action.released then
+		self.on_touch = change_block(block_type.PLAIN, colors[4])
+	elseif action_id == hash("color5") and action.released then
+		self.on_touch = change_block(block_type.PLAIN, colors[5])
 	elseif action_id == hash("delete") and action.released then
 		self.on_touch = delete_block
 	elseif action_id == hash("stabilize") and action.released then
 		emthree.stabilize(self.board)
 	elseif action_id == hash("cancel") and action.released then
 		self.on_touch = emthree.on_input
+	elseif action_id == hash("dump") and action.released then
+		print(emthree.dump(self.board))
 	end
 end
 
