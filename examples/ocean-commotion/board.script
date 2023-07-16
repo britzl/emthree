@@ -206,6 +206,8 @@ function on_input(self, action_id, action)
 		self.on_touch = change_block(block_type.PLAIN, colors[4])
 	elseif action_id == hash("color5") and action.released then
 		self.on_touch = change_block(block_type.PLAIN, colors[5])
+	elseif action_id == hash("color6") and action.released then
+		self.on_touch = change_block(block_type.PLAIN, colors[6])
 	elseif action_id == hash("delete") and action.released then
 		self.on_touch = delete_block
 	elseif action_id == hash("stabilize") and action.released then
