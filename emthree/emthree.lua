@@ -726,8 +726,8 @@ end
 function M.change_block(block, type, color)
 	assert(block, "You must provide a block")
 	assert(type or color, "You must provide type and/or color")
-	block.color = color
-	block.type = type
+	block.color = color or block.color
+	block.type = type or block.type
 	block.vertical_neighbors = {}
 	block.horisontal_neighbors = {}
 	msg.post(block.id, M.CHANGE, { color = block.color, type = block.type, position = go.get_position(block.id) })
