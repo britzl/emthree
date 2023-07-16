@@ -158,6 +158,55 @@ local function delete_block(board, action)
 	end
 end
 
+-- create a board with a specific setup
+local function debug_board(board)
+	-- 1 = YELLOW,
+	-- 2 = BLUE,
+	-- 3 = ORANGE,
+	-- 4 = PURPLE,
+	-- 5 = GREEN,
+	-- 6 = RED
+	local BOARD =
+		"545562" ..
+		"145211" ..
+		"V34353" ..
+		"343226" ..
+		"VH3165" ..
+		"1B2114" ..
+		"524226" ..
+		"2446H5"
+		
+	for y=0,boardheight-2 do
+		for x=0,boardwidth-1 do
+			local i = 1 + ((boardheight - 2 - y) * boardwidth) + x
+			local slot = BOARD:sub(i, i)
+			if slot == "1" then
+				emthree.create_block(board, x, y, block_type.PLAIN, colors[1])
+			elseif slot == "2" then
+				emthree.create_block(board, x, y, block_type.PLAIN, colors[2])
+			elseif slot == "3" then
+				emthree.create_block(board, x, y, block_type.PLAIN, colors[3])
+			elseif slot == "4" then
+				emthree.create_block(board, x, y, block_type.PLAIN, colors[4])
+			elseif slot == "5" then
+				emthree.create_block(board, x, y, block_type.PLAIN, colors[5])
+			elseif slot == "6" then
+				emthree.create_block(board, x, y, block_type.PLAIN, colors[6])
+			elseif slot == "B" then
+				emthree.create_block(board, x, y, block_type.BOMB, colors[1])
+			elseif slot == "H" then
+				emthree.create_block(board, x, y, block_type.STRIPED_H, colors[1])
+			elseif slot == "V" then
+				emthree.create_block(board, x, y, block_type.STRIPED_V, colors[1])
+			elseif slot == "W" then
+				emthree.create_block(board, x, y, block_type.WRAPPED, colors[1])
+			end
+		end
+	end
+
+end
+
+
 --
 -- INIT the board
 --
@@ -174,6 +223,7 @@ function init(self)
 	for x=0,boardwidth-1 do
 		emthree.create_spawner(self.board, x, boardheight - 1, "SPAWNER")
 	end
+	--debug_board(self.board)
 	emthree.fill_board(self.board)
 	emthree.stabilize(self.board, function()
 		msg.post(".", "acquire_input_focus")
