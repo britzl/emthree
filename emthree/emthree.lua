@@ -748,7 +748,7 @@ function M.create_block(board, x, y, type, color)
 	assert(not board.slots[x][y], "The position is not empty")
 
 	local sx, sy = M.slot_to_screen(board, x, y)
-	local id, color, type = board.on_create_block(vmath.vector3(sx, sy, 0), type, color)
+	local id, color, type = board.on_create_block(board, vmath.vector3(sx, sy, 0), type, color)
 	board.slots[x][y] = { id = id, x = x, y = y, color = color, type = type, block = true }
 	return board.slots[x][y]
 end
@@ -767,7 +767,7 @@ function M.create_blocker(board, x, y, type)
 	assert(not board.slots[x][y], "The position is not empty")
 
 	local sx, sy = M.slot_to_screen(board, x, y)
-	local id, type = board.on_create_blocker(vmath.vector3(sx, sy, 0), type)
+	local id, type = board.on_create_blocker(board, vmath.vector3(sx, sy, 0), type)
 	board.slots[x][y] = { id = id, x = x, y = y, type = type, blocker = true }
 	return board.slots[x][y]
 end
@@ -786,7 +786,7 @@ function M.create_spawner(board, x, y, type)
 	assert(not board.slots[x][y], "The position is not empty")
 
 	local sx, sy = M.slot_to_screen(board, x, y)
-	local id, type = board.on_create_spawner(vmath.vector3(sx, sy, 0), type)
+	local id, type = board.on_create_spawner(board, vmath.vector3(sx, sy, 0), type)
 	board.slots[x][y] = { id = id, x = x, y = y, type = type, spawner = true }
 	return board.slots[x][y]
 end
