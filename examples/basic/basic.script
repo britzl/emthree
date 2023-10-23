@@ -21,7 +21,7 @@ local colors = {
 	[hash("brickYellow03")] = "yellow",
 }--]]
 
-local function create_block(position, type, color)
+local function create_block(board, position, type, color)
 	if not type and not color then
 		color = color or colors[math.random(#colors)]
 	end
@@ -30,14 +30,14 @@ local function create_block(position, type, color)
 	return id, color, type
 end
 
-local function create_spawner(position, type)
+local function create_spawner(board, position, type)
 	position.z = 1
 	local id = factory.create("#factory", position, null, { type = type, color = hash("brickGrey") })
 	msg.post(id, "set_parent", { parent_id = go.get_id(), keep_world_transform = 0 })
 	return id, type
 end
 
-local function create_blocker(position, type)
+local function create_blocker(board, position, type)
 	position.z = 1
 	local id = factory.create("#factory", position, null, { type = type, color = hash("brickSpecial06") })
 	msg.post(id, "set_parent", { parent_id = go.get_id(), keep_world_transform = 0 })

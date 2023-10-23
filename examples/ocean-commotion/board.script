@@ -41,7 +41,7 @@ local function is_bomb(block)
 	return block.type == block_type.BOMB
 end
 
-local function create_block(position, type, color)
+local function create_block(board, position, type, color)
 	if not type and not color then
 		color = color or colors[math.random(#colors)]
 		type = type or block_type.PLAIN
@@ -51,7 +51,7 @@ local function create_block(position, type, color)
 	return id, color, type
 end
 
-local function create_blocker(position, type)
+local function create_blocker(board, position, type)
 	local id = factory.create("#fish_factory", position, null, { color = nil, type = type })
 	msg.post(id, "set_parent", { parent_id = go.get_id(), keep_world_transform = 0 })
 	return id, type
