@@ -1010,6 +1010,7 @@ function M.on_input(board, action)
 	if action.pressed then
 		if not board.mark_1 then
 			board.mark_1 = block
+			board.mark_1_coords = { x=action.x, y=action.y }
 		else
 			board.mark_2 = block
 		end
@@ -1020,6 +1021,7 @@ function M.on_input(board, action)
 			-- second click, released on the first block again -> deselect it
 			msg.post(board.mark_1.id, M.RESET)
 			board.mark_1 = nil
+			board.mark_1_coords = nil
 			board.mark_2 = nil
 			return true
 
@@ -1039,6 +1041,7 @@ function M.on_input(board, action)
 				end
 				if not board.mark_1.removed then msg.post(board.mark_1.id, M.RESET) end
 				board.mark_1 = nil
+				board.mark_1_coords = nil
 				board.mark_2 = nil
 				msg.post(".", "acquire_input_focus")
 			end)
@@ -1047,15 +1050,35 @@ function M.on_input(board, action)
 		elseif board.mark_1 and not board.mark_2 then
 			-- one block selected, released on some other block -> swipe and swap
 			utils.corun(function()
+				-- For each unit cardinal dir vector, the shortest distance wins, and that is the gem to swap.
 				msg.post(".", "release_input_focus")
-				local dx = utils.clamp(board.mark_1.x - x, -1, 1)
-				local dy = utils.clamp(board.mark_1.y - y, -1, 1)
-				block = M.get_block(board, board.mark_1.x - dx, board.mark_1.y - dy)
-				if (dx == 0 or dy == 0) and block and not block.blocker then
+
+				-- Working in screen coordinates on purpose because user may release anywhere on screen (edge, above, below).
+				local sx = board.mark_1_coords.x
+				local sy = board.mark_1_coords.y
+				local first_click = vmath.vector3(sx, sy, 0)
+				local second_click = vmath.vector3(action.x, action.y, 0)
+
+				-- Finds the closest matching cardinal direction vector (up, down, left, right) from the user swipe vector.
+				local vec_between_clicks = second_click - first_click
+				local closest_direction = vmath.vector3()
+				local distance_test = 999999999999
+				for _, v in pairs(DIRECTIONS) do
+					local normalized_dir = vmath.normalize(vec_between_clicks)
+					local distance_to_cardinal = vmath.length(normalized_dir - v)
+					if distance_to_cardinal < distance_test then
+						closest_direction = v
+						distance_test = distance_to_cardinal
+					end
+				end
+
+				block = M.get_block(board, board.mark_1.x - (closest_direction.x * -1), board.mark_1.y - (closest_direction.y * -1))
+				if block and not block.blocker then
 					swap_slots(board, board.mark_1, block)
 				end
 				if not board.mark_1.removed then msg.post(board.mark_1.id, M.RESET) end
 				board.mark_1 = nil
+				board.mark_1_coords = nil
 				msg.post(".", "acquire_input_focus")
 			end)
 			return true
@@ -1064,6 +1087,7 @@ function M.on_input(board, action)
 			if board.mark_1 then
 				msg.post(board.mark_1.id, M.RESET)
 				board.mark_1 = nil
+				board.mark_1_coords = nil
 			end
 			if board.mark_2 then
 				msg.post(board.mark_2.id, M.RESET)
